@@ -1,5 +1,5 @@
 #define __debugSettings
-#define __animations
+//#define __animations
 
 #include "includes.h"
 
@@ -833,6 +833,26 @@ void SendHeartbeat(){
   needsHeartbeat = false;
 }
 
+void DisplayTime(){
+  for (size_t i = 0; i < PixelCount; i++)
+    strip.SetPixelColor(i, RgbColor(0, 0, 0));
+
+  time_t localTime = myTZ.toLocal(now(), &tcr);
+  size_t n;
+  //  hour
+  n = hourFormat12(localTime) * 5;
+  if ( n == 60 ) n = 0;
+  strip.SetPixelColor(n, RgbColor(strip.GetPixelColor(n).G, strip.GetPixelColor(n).G, 255));
+
+  //  minute
+  n = minute(localTime);
+  strip.SetPixelColor(n, RgbColor(strip.GetPixelColor(n).G, 255, strip.GetPixelColor(n).B));
+
+  //  second
+  n = second(localTime);
+  strip.SetPixelColor(n, RgbColor(255, strip.GetPixelColor(n).G, strip.GetPixelColor(n).B));
+}
+
 void mqtt_callback(const MQTT::Publish& pub) {
 
   Serial.print("Topic:\t\t");
@@ -1130,23 +1150,7 @@ void loop(){
           needsHeartbeat = false;
         }
 
-        //  Display time
-        for (size_t i = 0; i < PixelCount; i++)
-          strip.SetPixelColor(i, RgbColor(0, 0, 0));
-        
-        time_t localTime = myTZ.toLocal(now(), &tcr);
-        size_t n;
-        //  hour
-        n = hourFormat12(localTime) * 5;
-        strip.SetPixelColor(n, RgbColor(strip.GetPixelColor(n).G, strip.GetPixelColor(n).G, 255));
-        
-        //  minute
-        n = minute(localTime);
-        strip.SetPixelColor(n, RgbColor(strip.GetPixelColor(n).G, 255, strip.GetPixelColor(n).B));
-
-        //  second
-        n = second(localTime);
-        strip.SetPixelColor(n, RgbColor(255, strip.GetPixelColor(n).G, strip.GetPixelColor(n).B));
+        DisplayTime();
 
         #ifdef __animations
         animations.UpdateAnimations();
