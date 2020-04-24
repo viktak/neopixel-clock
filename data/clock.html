@@ -19,46 +19,72 @@
                         <li><a href="/status.html">Status</a></li>
                         <li><a href="/generalsettings.html">General</a></li>
                         <li><a href="/networksettings.html">Network</a></li>
-                        <li><a href="/clock.html">Clock</a></li>
-                        <li class="active"><a href="/tools.html">Tools</a></li>
+                        <li class="active"><a href="/clock.html">Clock</a></li>
+                        <li><a href="/tools.html">Tools</a></li>
                         <li><a href="/login.html?DISCONNECT=YES">Logout</a></li>
                     </ul>
                 </div>
             </div>
         </nav>
-        <div class="well">
-            Administrative tools. Use them only if you know what you're doing.
-        </div>
-
         <form class="form-horizontal" method="post">
+            <div class="well">
+                Control your clock here.
+            </div>
+
             <div class="panel panel-default">
-                <div class="panel-heading">Reboot</div>
+                <div class="panel-heading">Clock</div>
                 <div class="panel-body">
                     <div class="well well-sm">
-                        Reboot device. Decide wether to keep your settings or not.
+                        Apearance
                     </div>
                     <div class="form-group">
-                        <label class="control-label col-sm-2" for="restart">Keep settings</label>
+                        <label class="control-label col-sm-2" for="trailselector">Trail length:</label>
                         <div class="col-sm-10">
-                            <button type="submit" class="btn btn-default" id="restart" name="restart"  onclick="javascript: if (!confirm('Are you sure?')) { return false; }">Restart</button>
+                          <select class="form-control" name="trailselector" id="trailselector">
+                            %traillist%
+                          </select>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="control-label col-sm-2" for="reset">Default settings</label>
+                        <label class="control-label col-sm-2" for="reverse">Reverse clock</label>
                         <div class="col-sm-10">
-                            <button type="submit" class="btn btn-default" id="reset" name="reset" onclick="javascript: if (!confirm('Are you sure?')) { return false; }">Reset</button>
+                          <div class="checkbox">
+                            <label>
+                              %chkreverse%
+                            </label>
+                          </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label col-sm-2" for="showfivemark">Show 5 minute dots</label>
+                        <div class="col-sm-10">
+                          <div class="checkbox">
+                            <label>
+                              %chkfiveminute%
+                            </label>
+                          </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label col-sm-2" for="showseconds">Show seconds</label>
+                        <div class="col-sm-10">
+                          <div class="checkbox">
+                            <label>
+                              %chkshowseconds%
+                            </label>
+                          </div>
                         </div>
                     </div>
 
                 </div>
+            </div>
 
-            </div>
-            <!--
             <div class="">
-                <button type="submit" class="btn btn-default" name="submit">Save settings</button>
+                <button type="submit" class="btn btn-default">Save settings</button>
             </div>
-                -->
+
         </form>
+        <p></p>
         <div class="well well-sm">
           (c)2016-2020 Viktor Takacs - <a href="http://diy.viktak.com" target="_blank">diy.viktak.com</a>
         </div>

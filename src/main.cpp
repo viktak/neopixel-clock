@@ -1,5 +1,4 @@
 #define __debugSettings
-//#define __animations
 
 #include "includes.h"
 
@@ -18,28 +17,17 @@ os_timer_t temperatureTimer;
 bool needsHeartbeat = false;
 bool needsTemperature = false;
 
-
 //  NeoPixel
-const uint16_t PixelCount = 60; // make sure to set this to the number of pixels in your strip
-const uint16_t AnimCount = PixelCount / 5 * 2 + 1; // we only need enough animations for the tail and one extra
-
-const uint16_t PixelFadeDuration = 300; // third of a second
-// one second divide by the number of pixels = loop once a second
-const uint16_t NextPixelMoveDuration = 1000 / PixelCount; // how fast we move through the pixels
-
-NeoPixelAnimator animations(AnimCount); // NeoPixel animation management object
-MyAnimationState animationState[AnimCount];
-uint16_t frontPixel = 0;  // the front of the loop
-RgbColor frontColor;  // the color at the front of the loop
-
 NeoGamma<NeoGammaTableMethod> colorGamma;
-NeoPixelBus<NeoGrbFeature, Neo800KbpsMethod> strip(PixelCount);
+NeoPixelBus<NeoGrbFeature, Neo800KbpsMethod> strip(NUMBER_OF_LEDS);
+RGBPixelData buf[NUMBER_OF_LEDS];
 
 //  Other global variables
 config appConfig;
 char timeout = 30;
 bool isAccessPoint = false;
 bool isAccessPointCreated = false;
+uint8_t oldSecs = -1;
 
 TimeChangeRule *tcr;        // Pointer to the time change rule
 
@@ -71,54 +59,8 @@ void SetRandomSeed(){
         delay(1);
     }
 
-    // Serial.println(seed);
+    //Serial.printf("Random seed: %i\n\r", seed);
     randomSeed(seed);
-}
-
-void FadeOutAnimUpdate(const AnimationParam& param){
-    // this gets called for each animation on every time step
-    // progress will start at 0.0 and end at 1.0
-    // we use the blend function on the RgbColor to mix
-    // color based on the progress given to us in the animation
-    RgbColor updatedColor = RgbColor::LinearBlend(
-        animationState[param.index].StartingColor,
-        animationState[param.index].EndingColor,
-        param.progress);
-    // apply the color to the strip
-    strip.SetPixelColor(animationState[param.index].IndexPixel, 
-        colorGamma.Correct(updatedColor));
-}
-
-void LoopAnimUpdate(const AnimationParam& param){
-    // wait for this animation to complete,
-    // we are using it as a timer of sorts
-    if (param.state == AnimationState_Completed)
-    {
-        // done, time to restart this position tracking animation/timer
-        animations.RestartAnimation(param.index);
-
-        // pick the next pixel inline to start animating
-        // 
-        frontPixel = (frontPixel + 1) % PixelCount; // increment and wrap
-        if (frontPixel == 0)
-        {
-            // we looped, lets pick a new front color
-            frontColor = HslColor(random(360) / 360.0f, 1.0f, 0.25f);
-        }
-
-        uint16_t indexAnim;
-        // do we have an animation available to use to animate the next front pixel?
-        // if you see skipping, then either you are going to fast or need to increase
-        // the number of animation channels
-        if (animations.NextAvailableAnimation(&indexAnim, 1))
-        {
-            animationState[indexAnim].StartingColor = frontColor;
-            animationState[indexAnim].EndingColor = RgbColor(0, 0, 0);
-            animationState[indexAnim].IndexPixel = frontPixel;
-
-            animations.StartAnimation(indexAnim, PixelFadeDuration, FadeOutAnimUpdate);
-        }
-    }
 }
 
 void LogEvent(int Category, int ID, String Title, String Data){
@@ -186,7 +128,7 @@ bool loadSettings(config& data) {
   }
   else
   {
-    strcpy(appConfig.ssid, "ssid");
+    strcpy(appConfig.ssid, defaultSSID);
   }
   
   if (doc["password"]){
@@ -245,13 +187,19 @@ bool loadSettings(config& data) {
     appConfig.heartbeatInterval = DEFAULT_HEARTBEAT_INTERVAL;
   }
   
-  if (doc["temperatureRefreshInterval"]){
-    appConfig.temperatureRefreshInterval = doc["temperatureRefreshInterval"];
+  if (doc["trailLength"]){
+    appConfig.trailLength = doc["trailLength"];
   }
-  else
-  {
-    appConfig.temperatureRefreshInterval = DEFAULT_TEMPERATURE_REFRESH_INTERVAL;
-  }
+
+  if ( doc.containsKey("reverseClockDirection"))
+    appConfig.reverseClockDirection = doc["reverseClockDirection"];
+
+  if (doc.containsKey("showFiveMinuteMarks"))
+    appConfig.showFiveMinuteMarks = doc["showFiveMinuteMarks"];
+    
+  if (doc.containsKey("showSeconds"))
+    appConfig.showSeconds = doc["showSeconds"];
+    
 
   return true;
 }
@@ -270,7 +218,10 @@ bool saveSettings() {
   doc["mqttPort"] = appConfig.mqttPort;
   doc["mqttTopic"] = appConfig.mqttTopic;
 
-  doc["temperatureRefreshInterval"] = appConfig.temperatureRefreshInterval;
+  doc["trailLength"] = appConfig.trailLength;
+  doc["reverseClockDirection"] = appConfig.reverseClockDirection;
+  doc["showFiveMinuteMarks"] = appConfig.showFiveMinuteMarks;
+  doc["showSeconds"] = appConfig.showSeconds;
 
   doc["friendlyName"] = appConfig.friendlyName;
   #ifdef __debugSettings
@@ -306,10 +257,13 @@ void defaultSettings(){
 
   appConfig.timeZone = 2;
 
-  appConfig.temperatureRefreshInterval = DEFAULT_TEMPERATURE_REFRESH_INTERVAL;
   strcpy(appConfig.friendlyName, NODE_DEFAULT_FRIENDLY_NAME);
   appConfig.heartbeatInterval = DEFAULT_HEARTBEAT_INTERVAL;
 
+  appConfig.trailLength = DEFAULT_TRAIL_LENGTH;
+  appConfig.reverseClockDirection = DEFAULT_REVERSE_CLOCK_DIRECTION;
+  appConfig.showFiveMinuteMarks = DEFAULT_SHOW_FIVE_MINUTE_MARKS;
+  appConfig.showSeconds = DEFAULT_SHOW_SECONDS;
 
   if (!saveSettings()) {
     Serial.println("Failed to save config");
@@ -610,15 +564,23 @@ void handleGeneralSettings() {
         LogEvent(EVENTCATEGORIES::MqttParamChange, 1, "New MQTT topic", appConfig.mqttTopic);
     }
 
-    if (server.hasArg("temperatureRefreshInterval")){
-      os_timer_disarm(&temperatureTimer);
-      appConfig.temperatureRefreshInterval = atoi(server.arg("temperatureRefreshInterval").c_str());
-      os_timer_arm(&temperatureTimer, appConfig.temperatureRefreshInterval * 1000, true);
-      LogEvent(EVENTCATEGORIES::TemperatureInterval, 3, "New temperature refresh interval", server.arg("temperatureRefreshInterval").c_str());
-    }    
-
     if (mqttDirty)
       PSclient.disconnect();
+
+    //  Clock settings
+    if (server.hasArg("trailselector")){
+      appConfig.trailLength = server.arg("trailselector").toInt();
+      LogEvent(EVENTCATEGORIES::Clock, 1, "New trail length", (String)appConfig.trailLength);
+    }
+
+    if (server.hasArg("reverse")){
+      appConfig.reverseClockDirection = true;
+      LogEvent(EVENTCATEGORIES::Clock, 1, "Reverse direction", "true");
+    }
+    else{
+      appConfig.reverseClockDirection = false;
+      LogEvent(EVENTCATEGORIES::Clock, 2, "Reverse direction", "false");
+    }
 
     saveSettings();
     ESP.reset();
@@ -632,7 +594,7 @@ void handleGeneralSettings() {
 
   f = SPIFFS.open("/generalsettings.html", "r");
 
-  String s, htmlString, timezoneslist;
+  String s, htmlString, timezoneslist, traillist, chkreverse;
 
   char ss[2];
 
@@ -656,6 +618,24 @@ void handleGeneralSettings() {
     timezoneslist+="\n";
   }
 
+  for (size_t i = 1; i < 10; i++){
+    itoa(i, ss, DEC);
+    traillist+="<option ";
+    if (appConfig.trailLength == i){
+      traillist+= "selected ";
+    }
+    traillist+= "value=\"";
+    traillist+=ss;
+    traillist+="\">";
+    traillist+=ss;
+    traillist+="</option>";
+    traillist+="\n";
+  }
+
+  chkreverse = "<input type=""checkbox"" name=""reverse"" id=""reverse""  ";
+  if (appConfig.reverseClockDirection==true) chkreverse+="checked=";
+  chkreverse+= "/>";
+
   while (f.available()){
     s = f.readStringUntil('\n');
 
@@ -667,9 +647,8 @@ void handleGeneralSettings() {
     if (s.indexOf("%friendlyname%")>-1) s.replace("%friendlyname%", appConfig.friendlyName);
     if (s.indexOf("%heartbeatinterval%")>-1) s.replace("%heartbeatinterval%", (String)appConfig.heartbeatInterval);
 
-    String searchString = "value=\"" + (String)appConfig.temperatureRefreshInterval + "\"";
-
-    if(s.indexOf(searchString)>-1) s.replace(searchString, searchString + " selected");
+    if (s.indexOf("%traillist%")>-1) s.replace("%traillist%", traillist);
+    if (s.indexOf("%chkreverse%")>-1) s.replace("%chkreverse%", chkreverse);
 
     htmlString+=s;
   }
@@ -728,6 +707,108 @@ void handleNetworkSettings() {
   server.send(200, "text/html", htmlString);
 
   LogEvent(EVENTCATEGORIES::PageHandler, 2, "Page served", "networksettings.html");
+}
+
+void handleClock() {
+  LogEvent(EVENTCATEGORIES::PageHandler, 1, "Page requested", "clock.html");
+
+  if (!is_authenticated()){
+     String header = "HTTP/1.1 301 OK\r\nLocation: /login.html\r\nCache-Control: no-cache\r\n\r\n";
+     server.sendContent(header);
+     return;
+   }
+
+  if (server.method() == HTTP_POST){  //  POST
+
+    if (server.hasArg("trailselector")){
+      appConfig.trailLength = server.arg("trailselector").toInt();
+      LogEvent(EVENTCATEGORIES::Clock, 1, "New trail length", (String)appConfig.trailLength);
+    }
+
+    if (server.hasArg("reverse")){
+      appConfig.reverseClockDirection = true;
+      LogEvent(EVENTCATEGORIES::Clock, 1, "Reverse direction", "true");
+    }
+    else{
+      appConfig.reverseClockDirection = false;
+      LogEvent(EVENTCATEGORIES::Clock, 2, "Reverse direction", "false");
+    }
+
+    if (server.hasArg("showfivemark")){
+      appConfig.showFiveMinuteMarks = true;
+      LogEvent(EVENTCATEGORIES::Clock, 3, "Show five minute marks", "true");
+    }
+    else{
+      appConfig.showFiveMinuteMarks = false;
+      LogEvent(EVENTCATEGORIES::Clock, 4, "Show five minute marks", "false");
+    }
+
+    if (server.hasArg("showseconds")){
+      appConfig.showSeconds = true;
+      LogEvent(EVENTCATEGORIES::Clock, 5, "Show seconds", "true");
+    }
+    else{
+      appConfig.showSeconds = false;
+      LogEvent(EVENTCATEGORIES::Clock, 6, "Show seconds", "false");
+    }
+
+    saveSettings();
+
+  }
+
+  fs::File f = SPIFFS.open("/pageheader.html", "r");
+  String headerString;
+  if (f.available()) headerString = f.readString();
+  f.close();
+
+  f = SPIFFS.open("/clock.html", "r");
+
+  String s, htmlString, traillist, chkreverse, chkfiveminute, chkshowseconds;
+
+  char ss[2];
+
+  for (size_t i = 1; i < 10; i++){
+    itoa(i, ss, DEC);
+    traillist+="<option ";
+    if (appConfig.trailLength == i){
+      traillist+= "selected ";
+    }
+    traillist+= "value=\"";
+    traillist+=ss;
+    traillist+="\">";
+    traillist+=ss;
+    traillist+="</option>";
+    traillist+="\n";
+  }
+
+  chkreverse = "<input type=""checkbox"" name=""reverse"" id=""reverse""  ";
+  if (appConfig.reverseClockDirection) chkreverse+="checked=";
+  chkreverse+= "/>";
+
+  chkfiveminute = "<input type=""checkbox"" name=""showfivemark"" id=""showfivemark""  ";
+  if (appConfig.showFiveMinuteMarks) chkfiveminute+="checked=";
+  chkfiveminute+= "/>";
+
+  chkshowseconds = "<input type=""checkbox"" name=""showseconds"" id=""showseconds""  ";
+  if (appConfig.showSeconds) chkshowseconds+="checked=";
+  chkshowseconds+= "/>";
+
+  while (f.available()){
+    s = f.readStringUntil('\n');
+
+    if (s.indexOf("%pageheader%")>-1) s.replace("%pageheader%", headerString);
+
+    if (s.indexOf("%traillist%")>-1) s.replace("%traillist%", traillist);
+    if (s.indexOf("%chkreverse%")>-1) s.replace("%chkreverse%", chkreverse);
+    if (s.indexOf("%chkfiveminute%")>-1) s.replace("%chkfiveminute%", chkfiveminute);
+    if (s.indexOf("%chkshowseconds%")>-1) s.replace("%chkshowseconds%", chkshowseconds);
+
+    htmlString+=s;
+  }
+  f.close();
+  server.send(200, "text/html", htmlString);
+
+  LogEvent(EVENTCATEGORIES::PageHandler, 2, "Page served", "clock.html");
 }
 
 void handleTools() {
@@ -834,23 +915,85 @@ void SendHeartbeat(){
 }
 
 void DisplayTime(){
-  for (size_t i = 0; i < PixelCount; i++)
-    strip.SetPixelColor(i, RgbColor(0, 0, 0));
+  
+  //  Clear pixels
+  for (size_t i = 0; i < NUMBER_OF_LEDS; i++){
+    buf[i].Red = 0;
+    buf[i].Green = 0;
+    buf[i].Blue = 0;
+  }
 
+  //  Calculate time
   time_t localTime = myTZ.toLocal(now(), &tcr);
-  size_t n;
-  //  hour
-  n = hourFormat12(localTime) * 5;
-  if ( n == 60 ) n = 0;
-  strip.SetPixelColor(n, RgbColor(strip.GetPixelColor(n).G, strip.GetPixelColor(n).G, 255));
 
-  //  minute
-  n = minute(localTime);
-  strip.SetPixelColor(n, RgbColor(strip.GetPixelColor(n).G, 255, strip.GetPixelColor(n).B));
+ 
+   //  Display time markers
+  int8_t myHours = hourFormat12(localTime) * 5;
+  int8_t myMinutes = minute(localTime);
+  int8_t mySeconds = second(localTime);
 
-  //  second
-  n = second(localTime);
-  strip.SetPixelColor(n, RgbColor(255, strip.GetPixelColor(n).G, strip.GetPixelColor(n).B));
+  //  Display time and trail
+  int8_t diff = (LED_MAX_BRIGHTNESS - LAST_OF_TRAIL_BRIGHTNESS) / ( appConfig.trailLength - 1);
+
+  for (int8_t i = 0; i < appConfig.trailLength; i++){
+    int8_t offset = 0;
+
+    if ( myHours - i < 0 ) offset = NUMBER_OF_LEDS;
+    buf[(myHours   - i + offset>59?0:myHours   - i + offset)].Blue  = LED_MAX_BRIGHTNESS - diff * i;
+
+    if ( myMinutes - i < 0 ) offset = NUMBER_OF_LEDS;
+    buf[myMinutes - i + offset].Green = LED_MAX_BRIGHTNESS - diff * i;
+
+    //Serial.printf("i: %i\tminutes: %i\toffset: %i\t\r\n", i, myMinutes, myMinutes - i + offset);
+
+    if ( appConfig.showSeconds ){
+      if ( mySeconds - i < 0 ) offset = NUMBER_OF_LEDS;
+      buf[mySeconds - i + offset].Red   = LED_MAX_BRIGHTNESS - diff * i;
+    }
+  }
+
+  //Serial.println();
+
+  //  Display 5 minute marks
+  if ( appConfig.showFiveMinuteMarks ){
+    for (size_t i = 0; i < 12; i++){
+
+      bool isRedLit = buf[i*5].Red;
+      bool isGreenLit = buf[i*5].Green;
+      bool isBlueLit = buf[i*5].Blue;
+
+      buf[i*5].Red = isRedLit?buf[i*5].Red:FIVE_MINUTE_MARK_BRIGHTNESS;
+      buf[i*5].Green = isGreenLit?buf[i*5].Green:FIVE_MINUTE_MARK_BRIGHTNESS;
+      buf[i*5].Blue = isBlueLit?buf[i*5].Blue:FIVE_MINUTE_MARK_BRIGHTNESS;
+    }
+  }
+
+  //  If clock is reversed, it needs its dots shifted by one pixel,
+  //  so that the 12 hour mark stays put.
+  if (appConfig.reverseClockDirection){
+    RGBPixelData pd;
+    pd.Red = buf[0].Red;
+    pd.Green = buf[0].Green;
+    pd.Blue = buf[0].Blue;
+    // //Serial.printf("%i\t%i\t%i\r\n", pd.Red, pd.Green, pd.Blue);
+    for (size_t i = 1; i < NUMBER_OF_LEDS; i++)
+    {
+      buf[i-1].Red = buf[i].Red;
+      buf[i-1].Green = buf[i].Green;
+      buf[i-1].Blue = buf[i].Blue;
+    }
+    buf[NUMBER_OF_LEDS - 1].Red = pd.Red;
+    buf[NUMBER_OF_LEDS - 1].Green = pd.Green;
+    buf[NUMBER_OF_LEDS - 1].Blue = pd.Blue;
+  }
+
+  //  Move buffer to strip
+  for (size_t i = 0; i < NUMBER_OF_LEDS; i++){
+    if (appConfig.reverseClockDirection)
+      strip.SetPixelColor(NUMBER_OF_LEDS - i - 1, colorGamma.Correct(RgbColor(buf[i].Red, buf[i].Green, buf[i].Blue)));
+      else
+      strip.SetPixelColor(i, colorGamma.Correct(RgbColor(buf[i].Red, buf[i].Green, buf[i].Blue)));
+  }
 }
 
 void mqtt_callback(const MQTT::Publish& pub) {
@@ -966,6 +1109,7 @@ void setup() {
   server.on("/", handleRoot);
   server.on("/status.html", handleStatus);
   server.on("/generalsettings.html", handleGeneralSettings);
+  server.on("/clock.html", handleClock);
   server.on("/networksettings.html", handleNetworkSettings);
   server.on("/tools.html", handleTools);
   server.on("/login.html", handleLogin);
@@ -994,17 +1138,10 @@ void setup() {
   strip.Begin();
   strip.Show();
 
-  SetRandomSeed();
 
-  #ifdef __animations
-
-  // we use the index 0 animation to time how often we move to the next
-  // pixel in the strip
-  animations.StartAnimation(0, NextPixelMoveDuration, LoopAnimUpdate);
-  #endif
 
   //  Randomizer
-  srand(now());
+  SetRandomSeed();
 
   // Set the initial connection state
   connectionState = STATE_CHECK_WIFI_CONNECTION;
@@ -1150,11 +1287,11 @@ void loop(){
           needsHeartbeat = false;
         }
 
-        DisplayTime();
-
-        #ifdef __animations
-        animations.UpdateAnimations();
-        #endif
+        uint8_t currentSecond = second(now());
+        if ( oldSecs != currentSecond ){
+          DisplayTime();
+          oldSecs = currentSecond;
+        }
 
         strip.Show();
 
