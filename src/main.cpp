@@ -45,6 +45,17 @@ Timezone myTZ(myDST, mySTD);
 
 
 
+
+
+
+int8_t hh = 10;
+int8_t mm = 20;
+int8_t ss = 30;
+
+
+
+
+
 void SetRandomSeed(){
     uint32_t seed;
 
@@ -754,6 +765,18 @@ void handleClock() {
 
     saveSettings();
 
+
+
+    if (server.hasArg("testhour")){
+      hh = atoi(server.arg("testhour").c_str());
+    }
+    if (server.hasArg("testminute")){
+      mm = atoi(server.arg("testminute").c_str());
+    }
+    if (server.hasArg("testsecond")){
+      ss = atoi(server.arg("testsecond").c_str());
+    }
+
   }
 
   fs::File f = SPIFFS.open("/pageheader.html", "r");
@@ -765,18 +788,18 @@ void handleClock() {
 
   String s, htmlString, traillist, chkreverse, chkfiveminute, chkshowseconds;
 
-  char ss[2];
+  char sss[2];
 
   for (size_t i = 1; i < 10; i++){
-    itoa(i, ss, DEC);
+    itoa(i, sss, DEC);
     traillist+="<option ";
     if (appConfig.trailLength == i){
       traillist+= "selected ";
     }
     traillist+= "value=\"";
-    traillist+=ss;
+    traillist+=sss;
     traillist+="\">";
-    traillist+=ss;
+    traillist+=sss;
     traillist+="</option>";
     traillist+="\n";
   }
@@ -802,6 +825,10 @@ void handleClock() {
     if (s.indexOf("%chkreverse%")>-1) s.replace("%chkreverse%", chkreverse);
     if (s.indexOf("%chkfiveminute%")>-1) s.replace("%chkfiveminute%", chkfiveminute);
     if (s.indexOf("%chkshowseconds%")>-1) s.replace("%chkshowseconds%", chkshowseconds);
+
+    if (s.indexOf("%testhour%")>-1) s.replace("%testhour%", (String)hh);
+    if (s.indexOf("%testminute%")>-1) s.replace("%testminute%", (String)mm);
+    if (s.indexOf("%testsecond%")>-1) s.replace("%testsecond%", (String)ss);
 
     htmlString+=s;
   }
@@ -928,9 +955,15 @@ void DisplayTime(){
 
  
    //  Display time markers
-  int8_t myHours = hourFormat12(localTime) * 5;
+  int8_t myHours = hourFormat12(localTime);
   int8_t myMinutes = minute(localTime);
   int8_t mySeconds = second(localTime);
+
+  // myHours = hh;
+  // myMinutes = mm;
+  // mySeconds = ss;
+
+  myHours*=5;
 
   //  Display time and trail
   int8_t diff = (LED_MAX_BRIGHTNESS - LAST_OF_TRAIL_BRIGHTNESS) / ( appConfig.trailLength - 1);
@@ -944,7 +977,7 @@ void DisplayTime(){
     if ( myMinutes - i < 0 ) offset = NUMBER_OF_LEDS;
     buf[myMinutes - i + offset].Green = LED_MAX_BRIGHTNESS - diff * i;
 
-    //Serial.printf("i: %i\tminutes: %i\toffset: %i\t\r\n", i, myMinutes, myMinutes - i + offset);
+    //Serial.printf("i: %i\tminutes: %i\tposition: %i\t\r\n", i, myMinutes, myMinutes - i + offset);
 
     if ( appConfig.showSeconds ){
       if ( mySeconds - i < 0 ) offset = NUMBER_OF_LEDS;
