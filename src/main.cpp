@@ -971,18 +971,22 @@ void DisplayTime(){
   for (int8_t i = 0; i < appConfig.trailLength; i++){
     int8_t offset = 0;
 
-    if ( myHours - i < 0 ) offset = NUMBER_OF_LEDS;
+    if ( myHours - i < 0 ) offset = NUMBER_OF_LEDS; else offset = 0;
     buf[(myHours   - i + offset>59?0:myHours   - i + offset)].Blue  = LED_MAX_BRIGHTNESS - diff * i;
 
-    if ( myMinutes - i < 0 ) offset = NUMBER_OF_LEDS;
+    //Serial.printf("i: %i\thours: %i\tposition: %i\t\r\n", i, myHours, myHours - i + offset);
+
+    if ( myMinutes - i < 0 ) offset = NUMBER_OF_LEDS; else offset = 0;
     buf[myMinutes - i + offset].Green = LED_MAX_BRIGHTNESS - diff * i;
 
     //Serial.printf("i: %i\tminutes: %i\tposition: %i\t\r\n", i, myMinutes, myMinutes - i + offset);
 
     if ( appConfig.showSeconds ){
-      if ( mySeconds - i < 0 ) offset = NUMBER_OF_LEDS;
+      if ( mySeconds - i < 0 ) offset = NUMBER_OF_LEDS; else offset = 0;
       buf[mySeconds - i + offset].Red   = LED_MAX_BRIGHTNESS - diff * i;
     }
+    //Serial.printf("i: %i\tseconds: %i\tposition: %i\t\r\n", i, mySeconds, mySeconds - i + offset);
+    //Serial.println();
   }
 
   //Serial.println();
