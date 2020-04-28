@@ -397,6 +397,8 @@ void handleLogin(){
   if (f.available()) headerString = f.readString();
   f.close();
 
+  time_t localTime = myTZ.toLocal(now(), &tcr);
+
   f = SPIFFS.open("/login.html", "r");
 
   String s, htmlString;
@@ -404,6 +406,7 @@ void handleLogin(){
   while (f.available()){
     s = f.readStringUntil('\n');
 
+    if (s.indexOf("%year%")>-1) s.replace("%year%", (String)year(localTime));
     if (s.indexOf("%pageheader%")>-1) s.replace("%pageheader%", headerString);
     if (s.indexOf("%alert%")>-1) s.replace("%alert%", msg);
 
@@ -428,6 +431,8 @@ void handleRoot() {
   if (f.available()) headerString = f.readString();
   f.close();
 
+  time_t localTime = myTZ.toLocal(now(), &tcr);
+
   f = SPIFFS.open("/index.html", "r");
 
   String FirmwareVersionString = String(FIRMWARE_VERSION) + " @ " + String(__TIME__) + " - " + String(__DATE__);
@@ -437,6 +442,7 @@ void handleRoot() {
   while (f.available()){
     s = f.readStringUntil('\n');
 
+    if (s.indexOf("%year%")>-1) s.replace("%year%", (String)year(localTime));
     if (s.indexOf("%pageheader%")>-1) s.replace("%pageheader%", headerString);
     if (s.indexOf("%espid%")>-1) s.replace("%espid%", (String)ESP.getChipId());
     if (s.indexOf("%hardwareid%")>-1) s.replace("%hardwareid%", HARDWARE_ID);
@@ -477,6 +483,7 @@ void handleStatus() {
     s = f.readStringUntil('\n');
 
     //  System information
+    if (s.indexOf("%year%")>-1) s.replace("%year%", (String)year(localTime));
     if (s.indexOf("%pageheader%")>-1) s.replace("%pageheader%", headerString);
     if (s.indexOf("%chipid%")>-1) s.replace("%chipid%", (String)ESP.getChipId());
     if (s.indexOf("%uptime%")>-1) s.replace("%uptime%", TimeIntervalToString(millis()/1000));
@@ -603,6 +610,8 @@ void handleGeneralSettings() {
   if (f.available()) headerString = f.readString();
   f.close();
 
+  time_t localTime = myTZ.toLocal(now(), &tcr);
+
   f = SPIFFS.open("/generalsettings.html", "r");
 
   String s, htmlString, timezoneslist, traillist, chkreverse;
@@ -651,6 +660,7 @@ void handleGeneralSettings() {
     s = f.readStringUntil('\n');
 
     if (s.indexOf("%pageheader%")>-1) s.replace("%pageheader%", headerString);
+    if (s.indexOf("%year%")>-1) s.replace("%year%", (String)year(localTime));
     if (s.indexOf("%mqtt-servername%")>-1) s.replace("%mqtt-servername%", appConfig.mqttServer);
     if (s.indexOf("%mqtt-port%")>-1) s.replace("%mqtt-port%", String(appConfig.mqttPort));
     if (s.indexOf("%mqtt-topic%")>-1) s.replace("%mqtt-topic%", appConfig.mqttTopic);
@@ -696,6 +706,8 @@ void handleNetworkSettings() {
   if (f.available()) headerString = f.readString();
   f.close();
 
+  time_t localTime = myTZ.toLocal(now(), &tcr);
+
   f = SPIFFS.open("/networksettings.html", "r");
   String s, htmlString, wifiList;
 
@@ -711,6 +723,7 @@ void handleNetworkSettings() {
     s = f.readStringUntil('\n');
 
     if (s.indexOf("%pageheader%")>-1) s.replace("%pageheader%", headerString);
+    if (s.indexOf("%year%")>-1) s.replace("%year%", (String)year(localTime));
     if (s.indexOf("%wifilist%")>-1) s.replace("%wifilist%", wifiList);
       htmlString+=s;
     }
@@ -784,6 +797,8 @@ void handleClock() {
   if (f.available()) headerString = f.readString();
   f.close();
 
+  time_t localTime = myTZ.toLocal(now(), &tcr);
+
   f = SPIFFS.open("/clock.html", "r");
 
   String s, htmlString, traillist, chkreverse, chkfiveminute, chkshowseconds;
@@ -819,6 +834,8 @@ void handleClock() {
   while (f.available()){
     s = f.readStringUntil('\n');
 
+
+    if (s.indexOf("%year%")>-1) s.replace("%year%", (String)year(localTime));
     if (s.indexOf("%pageheader%")>-1) s.replace("%pageheader%", headerString);
 
     if (s.indexOf("%traillist%")>-1) s.replace("%traillist%", traillist);
@@ -866,6 +883,8 @@ void handleTools() {
   if (f.available()) headerString = f.readString();
   f.close();
 
+  time_t localTime = myTZ.toLocal(now(), &tcr);
+
   f = SPIFFS.open("/tools.html", "r");
 
   String s, htmlString;
@@ -874,6 +893,7 @@ void handleTools() {
     s = f.readStringUntil('\n');
 
     if (s.indexOf("%pageheader%")>-1) s.replace("%pageheader%", headerString);
+    if (s.indexOf("%year%")>-1) s.replace("%year%", (String)year(localTime));
 
       htmlString+=s;
     }
@@ -1005,7 +1025,7 @@ void DisplayTime(){
     }
   }
 
-  //  If clock is reversed, it needs its dots shifted by one pixel,
+  //  If clock is reversed, it needs its pixels shifted by one,
   //  so that the 12 hour mark stays put.
   if (appConfig.reverseClockDirection){
     RGBPixelData pd;
