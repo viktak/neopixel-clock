@@ -406,8 +406,8 @@ void handleLogin(){
   while (f.available()){
     s = f.readStringUntil('\n');
 
-    if (s.indexOf("%year%")>-1) s.replace("%year%", (String)year(localTime));
     if (s.indexOf("%pageheader%")>-1) s.replace("%pageheader%", headerString);
+    if (s.indexOf("%year%")>-1) s.replace("%year%", (String)year(localTime));
     if (s.indexOf("%alert%")>-1) s.replace("%alert%", msg);
 
     htmlString+=s;
