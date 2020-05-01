@@ -11,11 +11,9 @@ PubSubClient PSclient(wclient);
 
 //  Timers and their flags
 os_timer_t heartbeatTimer;
-os_timer_t temperatureTimer;
 
 //  Flags
 bool needsHeartbeat = false;
-bool needsTemperature = false;
 
 //  NeoPixel
 NeoGamma<NeoGammaTableMethod> colorGamma;
@@ -43,19 +41,6 @@ TimeChangeRule myDST = {"MDT", Fourth, Sun, Mar, 2, DST_TIMEZONE_OFFSET * 60};
 TimeChangeRule mySTD = {"MST", Fourth,  Sun, Oct, 2,  ST_TIMEZONE_OFFSET * 60};
 Timezone myTZ(myDST, mySTD);
 
-
-
-
-
-
-int8_t hh = 10;
-int8_t mm = 20;
-int8_t ss = 30;
-
-
-
-
-
 void SetRandomSeed(){
     uint32_t seed;
 
@@ -70,7 +55,6 @@ void SetRandomSeed(){
         delay(1);
     }
 
-    //Serial.printf("Random seed: %i\n\r", seed);
     randomSeed(seed);
 }
 
@@ -442,8 +426,8 @@ void handleRoot() {
   while (f.available()){
     s = f.readStringUntil('\n');
 
-    if (s.indexOf("%year%")>-1) s.replace("%year%", (String)year(localTime));
     if (s.indexOf("%pageheader%")>-1) s.replace("%pageheader%", headerString);
+    if (s.indexOf("%year%")>-1) s.replace("%year%", (String)year(localTime));
     if (s.indexOf("%espid%")>-1) s.replace("%espid%", (String)ESP.getChipId());
     if (s.indexOf("%hardwareid%")>-1) s.replace("%hardwareid%", HARDWARE_ID);
     if (s.indexOf("%hardwareversion%")>-1) s.replace("%hardwareversion%", HARDWARE_VERSION);
@@ -483,8 +467,8 @@ void handleStatus() {
     s = f.readStringUntil('\n');
 
     //  System information
-    if (s.indexOf("%year%")>-1) s.replace("%year%", (String)year(localTime));
     if (s.indexOf("%pageheader%")>-1) s.replace("%pageheader%", headerString);
+    if (s.indexOf("%year%")>-1) s.replace("%year%", (String)year(localTime));
     if (s.indexOf("%chipid%")>-1) s.replace("%chipid%", (String)ESP.getChipId());
     if (s.indexOf("%uptime%")>-1) s.replace("%uptime%", TimeIntervalToString(millis()/1000));
     if (s.indexOf("%currenttime%")>-1) s.replace("%currenttime%", DateTimeToString(localTime));
@@ -585,21 +569,6 @@ void handleGeneralSettings() {
     if (mqttDirty)
       PSclient.disconnect();
 
-    //  Clock settings
-    if (server.hasArg("trailselector")){
-      appConfig.trailLength = server.arg("trailselector").toInt();
-      LogEvent(EVENTCATEGORIES::Clock, 1, "New trail length", (String)appConfig.trailLength);
-    }
-
-    if (server.hasArg("reverse")){
-      appConfig.reverseClockDirection = true;
-      LogEvent(EVENTCATEGORIES::Clock, 1, "Reverse direction", "true");
-    }
-    else{
-      appConfig.reverseClockDirection = false;
-      LogEvent(EVENTCATEGORIES::Clock, 2, "Reverse direction", "false");
-    }
-
     saveSettings();
     ESP.reset();
 
@@ -637,24 +606,6 @@ void handleGeneralSettings() {
     timezoneslist+="</option>";
     timezoneslist+="\n";
   }
-
-  for (size_t i = 1; i < 10; i++){
-    itoa(i, ss, DEC);
-    traillist+="<option ";
-    if (appConfig.trailLength == i){
-      traillist+= "selected ";
-    }
-    traillist+= "value=\"";
-    traillist+=ss;
-    traillist+="\">";
-    traillist+=ss;
-    traillist+="</option>";
-    traillist+="\n";
-  }
-
-  chkreverse = "<input type=""checkbox"" name=""reverse"" id=""reverse""  ";
-  if (appConfig.reverseClockDirection==true) chkreverse+="checked=";
-  chkreverse+= "/>";
 
   while (f.available()){
     s = f.readStringUntil('\n');
@@ -778,18 +729,6 @@ void handleClock() {
 
     saveSettings();
 
-
-
-    if (server.hasArg("testhour")){
-      hh = atoi(server.arg("testhour").c_str());
-    }
-    if (server.hasArg("testminute")){
-      mm = atoi(server.arg("testminute").c_str());
-    }
-    if (server.hasArg("testsecond")){
-      ss = atoi(server.arg("testsecond").c_str());
-    }
-
   }
 
   fs::File f = SPIFFS.open("/pageheader.html", "r");
@@ -842,10 +781,6 @@ void handleClock() {
     if (s.indexOf("%chkreverse%")>-1) s.replace("%chkreverse%", chkreverse);
     if (s.indexOf("%chkfiveminute%")>-1) s.replace("%chkfiveminute%", chkfiveminute);
     if (s.indexOf("%chkshowseconds%")>-1) s.replace("%chkshowseconds%", chkshowseconds);
-
-    if (s.indexOf("%testhour%")>-1) s.replace("%testhour%", (String)hh);
-    if (s.indexOf("%testminute%")>-1) s.replace("%testminute%", (String)mm);
-    if (s.indexOf("%testsecond%")>-1) s.replace("%testsecond%", (String)ss);
 
     htmlString+=s;
   }
