@@ -1,5 +1,4 @@
 #define __debugSettings
-
 #include "includes.h"
 
 //  Web server
@@ -80,7 +79,7 @@ void heartbeatTimerCallback(void *pArg) {
 }
 
 bool loadSettings(config& data) {
-  fs::File configFile = SPIFFS.open("/config.json", "r");
+  File configFile = LittleFS.open("/config.json", "r");
   if (!configFile) {
     Serial.println("Failed to open config file");
     LogEvent(EVENTCATEGORIES::System, 1, "FS failure", "Failed to open config file.");
@@ -224,7 +223,7 @@ bool saveSettings() {
   Serial.println();
   #endif
 
-  fs::File configFile = SPIFFS.open("/config.json", "w");
+  File configFile = LittleFS.open("/config.json", "w");
   if (!configFile) {
     Serial.println("Failed to open config file for writing");
     LogEvent(System, 4, "FS failure", "Failed to open config file for writing.");
@@ -376,14 +375,14 @@ void handleLogin(){
     LogEvent(EVENTCATEGORIES::Login, 2, "Failure", "User name: " + server.arg("username") + " - Password: " + server.arg("password"));
   }
 
-  fs::File f = SPIFFS.open("/pageheader.html", "r");
+  File f = LittleFS.open("/pageheader.html", "r");
   String headerString;
   if (f.available()) headerString = f.readString();
   f.close();
 
   time_t localTime = myTZ.toLocal(now(), &tcr);
 
-  f = SPIFFS.open("/login.html", "r");
+  f = LittleFS.open("/login.html", "r");
 
   String s, htmlString;
 
@@ -410,14 +409,14 @@ void handleRoot() {
     return;
   }
 
-  fs::File f = SPIFFS.open("/pageheader.html", "r");
+  File f = LittleFS.open("/pageheader.html", "r");
   String headerString;
   if (f.available()) headerString = f.readString();
   f.close();
 
   time_t localTime = myTZ.toLocal(now(), &tcr);
 
-  f = SPIFFS.open("/index.html", "r");
+  f = LittleFS.open("/index.html", "r");
 
   String FirmwareVersionString = String(FIRMWARE_VERSION) + " @ " + String(__TIME__) + " - " + String(__DATE__);
 
@@ -450,7 +449,7 @@ void handleStatus() {
      return;
   }
 
-  fs::File f = SPIFFS.open("/pageheader.html", "r");
+  File f = LittleFS.open("/pageheader.html", "r");
   String headerString;
   if (f.available()) headerString = f.readString();
   f.close();
@@ -459,13 +458,13 @@ void handleStatus() {
   
   String s;
 
-  f = SPIFFS.open("/status.html", "r");
+  f = LittleFS.open("/status.html", "r");
 
   String htmlString, ds18b20list;
 
   while (f.available()){
     s = f.readStringUntil('\n');
-
+ 
     //  System information
     if (s.indexOf("%pageheader%")>-1) s.replace("%pageheader%", headerString);
     if (s.indexOf("%year%")>-1) s.replace("%year%", (String)year(localTime));
@@ -574,14 +573,14 @@ void handleGeneralSettings() {
 
   }
 
-  fs::File f = SPIFFS.open("/pageheader.html", "r");
+  File f = LittleFS.open("/pageheader.html", "r");
   String headerString;
   if (f.available()) headerString = f.readString();
   f.close();
 
   time_t localTime = myTZ.toLocal(now(), &tcr);
 
-  f = SPIFFS.open("/generalsettings.html", "r");
+  f = LittleFS.open("/generalsettings.html", "r");
 
   String s, htmlString, timezoneslist, traillist, chkreverse;
 
@@ -652,14 +651,14 @@ void handleNetworkSettings() {
     }
   }
 
-  fs::File f = SPIFFS.open("/pageheader.html", "r");
+  File f = LittleFS.open("/pageheader.html", "r");
   String headerString;
   if (f.available()) headerString = f.readString();
   f.close();
 
   time_t localTime = myTZ.toLocal(now(), &tcr);
 
-  f = SPIFFS.open("/networksettings.html", "r");
+  f = LittleFS.open("/networksettings.html", "r");
   String s, htmlString, wifiList;
 
   byte numberOfNetworks = WiFi.scanNetworks();
@@ -731,14 +730,14 @@ void handleClock() {
 
   }
 
-  fs::File f = SPIFFS.open("/pageheader.html", "r");
+  File f = LittleFS.open("/pageheader.html", "r");
   String headerString;
   if (f.available()) headerString = f.readString();
   f.close();
 
   time_t localTime = myTZ.toLocal(now(), &tcr);
 
-  f = SPIFFS.open("/clock.html", "r");
+  f = LittleFS.open("/clock.html", "r");
 
   String s, htmlString, traillist, chkreverse, chkfiveminute, chkshowseconds;
 
@@ -813,14 +812,14 @@ void handleTools() {
     }
   }
 
-  fs::File f = SPIFFS.open("/pageheader.html", "r");
+  File f = LittleFS.open("/pageheader.html", "r");
   String headerString;
   if (f.available()) headerString = f.readString();
   f.close();
 
   time_t localTime = myTZ.toLocal(now(), &tcr);
 
-  f = SPIFFS.open("/tools.html", "r");
+  f = LittleFS.open("/tools.html", "r");
 
   String s, htmlString;
 
@@ -1048,7 +1047,7 @@ void setup() {
   Serial.println();
 
   //  File system
-  if (!SPIFFS.begin()){
+  if (!LittleFS.begin()){
     Serial.println("Error: Failed to initialize the filesystem!");
   }
 
