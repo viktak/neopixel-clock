@@ -10,6 +10,7 @@ PubSubClient PSclient(wclient);
 
 //  Timers and their flags
 os_timer_t heartbeatTimer;
+os_timer_t accessPointTimer;
 
 //  Flags
 bool needsHeartbeat = false;
@@ -39,23 +40,6 @@ TimeChangeRule myDST = {"MDT", Fourth, Sun, Mar, 2, DST_TIMEZONE_OFFSET * 60};
 TimeChangeRule mySTD = {"MST", Fourth,  Sun, Oct, 2,  ST_TIMEZONE_OFFSET * 60};
 Timezone myTZ(myDST, mySTD);
 
-void SetRandomSeed(){
-    uint32_t seed;
-
-    // random works best with a seed that can use 31 bits
-    // analogRead on a unconnected pin tends toward less than four bits
-    seed = analogRead(0);
-    delay(1);
-
-    for (int shifts = 3; shifts < 31; shifts += 3)
-    {
-        seed ^= analogRead(0) << shifts;
-        delay(1);
-    }
-
-    randomSeed(seed);
-}
-
 void LogEvent(int Category, int ID, String Title, String Data){
   if (PSclient.connected()){
 
@@ -71,6 +55,10 @@ void LogEvent(int Category, int ID, String Title, String Data){
 
     PSclient.publish(MQTT::Publish(MQTT_CUSTOMER + String("/") + MQTT_PROJECT + String("/") + appConfig.mqttTopic + "/log", msg ).set_qos(0));
   }
+}
+
+void accessPointTimerCallback(void *pArg) {
+  ESP.reset();
 }
 
 void heartbeatTimerCallback(void *pArg) {
@@ -211,12 +199,13 @@ bool saveSettings() {
   doc["mqttPort"] = appConfig.mqttPort;
   doc["mqttTopic"] = appConfig.mqttTopic;
 
+  doc["friendlyName"] = appConfig.friendlyName;
+
   doc["trailLength"] = appConfig.trailLength;
   doc["reverseClockDirection"] = appConfig.reverseClockDirection;
   doc["showFiveMinuteMarks"] = appConfig.showFiveMinuteMarks;
   doc["showSeconds"] = appConfig.showSeconds;
 
-  doc["friendlyName"] = appConfig.friendlyName;
   #ifdef __debugSettings
   serializeJsonPretty(doc,Serial);
   Serial.println();
@@ -245,7 +234,7 @@ void defaultSettings(){
   strcpy(appConfig.mqttServer, "test.mosquitto.org");
   #endif
 
-  appConfig.mqttPort = 1883;
+  appConfig.mqttPort = DEFAULT_MQTT_PORT;
   strcpy(appConfig.mqttTopic, DEFAULT_MQTT_TOPIC);
 
   appConfig.timeZone = 2;
@@ -1013,6 +1002,33 @@ void mqtt_callback(const MQTT::Publish& pub) {
   Serial.println();
   #endif
 
+  if (doc.containsKey("dotest")){
+    Serial.println("Testing LEDs...");
+
+    for (size_t i = 0; i < NUMBER_OF_LEDS; i++)
+    {
+      strip.SetPixelColor(i, colorGamma.Correct(RgbColor(255, 0, 0)));
+      strip.Show();
+    }
+     delay(3000);
+    
+    for (size_t i = 0; i < NUMBER_OF_LEDS; i++)
+    {
+      strip.SetPixelColor(i, colorGamma.Correct(RgbColor(0, 255, 0)));
+      strip.Show();
+    }
+     delay(3000);
+    
+    for (size_t i = 0; i < NUMBER_OF_LEDS; i++)
+    {
+      strip.SetPixelColor(i, colorGamma.Correct(RgbColor(0, 0, 255)));
+      strip.Show();
+    }
+     delay(3000);
+    
+    Serial.println("End of testing, resuming normal operation...");
+  }
+
 
   //  reset
   if (doc.containsKey("reset")){
@@ -1131,7 +1147,7 @@ void setup() {
 
 
   //  Randomizer
-  SetRandomSeed();
+  srand(now());
 
   // Set the initial connection state
   connectionState = STATE_CHECK_WIFI_CONNECTION;
@@ -1165,6 +1181,14 @@ void loop(){
 
       Serial.print("Access point address:\t");
       Serial.println(myIP);
+
+      Serial.println();
+      Serial.println("Note: The device will reset in 5 minutes.");
+
+
+      os_timer_setfn(&accessPointTimer, accessPointTimerCallback, NULL);
+      os_timer_arm(&accessPointTimer, ACCESS_POINT_TIMEOUT, true);
+      os_timer_disarm(&heartbeatTimer);
     }
     server.handleClient();
   }
