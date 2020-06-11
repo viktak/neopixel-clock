@@ -1,3 +1,6 @@
+#ifndef DEFINES_H
+#define DEFINES_H
+
 #define MQTT_CUSTOMER           "viktak"
 #define MQTT_PROJECT            "spiti"
 
@@ -23,3 +26,4 @@
 #define LED_MAX_BRIGHTNESS 255
 #define LAST_OF_TRAIL_BRIGHTNESS 50
 
+#endif
