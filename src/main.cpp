@@ -53,8 +53,25 @@ void LogEvent(int Category, int ID, String Title, String Data){
 
     Serial.println(msg);
 
-    PSclient.publish(MQTT::Publish(MQTT_CUSTOMER + String("/") + MQTT_PROJECT + String("/") + appConfig.mqttTopic + "/log", msg ).set_qos(0));
+    PSclient.publish((MQTT_CUSTOMER + String("/") + MQTT_PROJECT + String("/") + appConfig.mqttTopic + "/log").c_str(), msg.c_str(), false);
   }
+}
+
+void SetRandomSeed(){
+    uint32_t seed;
+
+    // random works best with a seed that can use 31 bits
+    // analogRead on a unconnected pin tends toward less than four bits
+    seed = analogRead(0);
+    delay(1);
+
+    for (int shifts = 3; shifts < 31; shifts += 3)
+    {
+        seed ^= analogRead(0) << shifts;
+        delay(1);
+    }
+
+    randomSeed(seed);
 }
 
 void accessPointTimerCallback(void *pArg) {
@@ -495,7 +512,6 @@ void handleStatus() {
     f.close();
   server.send(200, "text/html", htmlString);
   LogEvent(EVENTCATEGORIES::PageHandler, 2, "Page served", "status.html");
-
 }
 
 void handleGeneralSettings() {
@@ -636,11 +652,14 @@ void handleNetworkSettings() {
       connectionState = STATE_CHECK_WIFI_CONNECTION;
       WiFi.disconnect(false);
 
+      ESP.reset();
     }
   }
 
   File f = LittleFS.open("/pageheader.html", "r");
+
   String headerString;
+
   if (f.available()) headerString = f.readString();
   f.close();
 
@@ -877,7 +896,7 @@ void SendHeartbeat(){
 
     serializeJson(doc, myJsonString);
 
-    PSclient.publish(MQTT::Publish(MQTT_CUSTOMER + String("/") + MQTT_PROJECT + "/" + appConfig.mqttTopic + "/HEARTBEAT", myJsonString ).set_qos(0));
+    PSclient.publish((MQTT_CUSTOMER + String("/") + MQTT_PROJECT + "/" + appConfig.mqttTopic + "/HEARTBEAT").c_str(), myJsonString.c_str(), 0);
   }
 
   needsHeartbeat = false;
@@ -975,17 +994,19 @@ void DisplayTime(){
   }
 }
 
-void mqtt_callback(const MQTT::Publish& pub) {
+void mqtt_callback(char* topic, byte* payload, unsigned int length) {
 
   Serial.print("Topic:\t\t");
-  Serial.println(pub.topic());
+  Serial.println(topic);
 
   Serial.print("Payload:\t");
-  if (pub.payload_string()!=NULL)
-    Serial.println(pub.payload_string());
+  for (unsigned int i = 0; i < length; i++) {
+    Serial.print((char)payload[i]);
+  }
+  Serial.println();
 
   StaticJsonDocument<JSON_MQTT_COMMAND_SIZE> doc;
-  DeserializationError error = deserializeJson(doc, pub.payload_string());
+  DeserializationError error = deserializeJson(doc, payload);
 
   if (error) {
     Serial.println("Failed to parse incoming string.");
@@ -996,51 +1017,54 @@ void mqtt_callback(const MQTT::Publish& pub) {
     }
     return;
   }
+  else{
+    //  It IS a JSON string
 
-  #ifdef __debugSettings
-  serializeJsonPretty(doc,Serial);
-  Serial.println();
-  #endif
+    #ifdef __debugSettings
+    serializeJsonPretty(doc,Serial);
+    Serial.println();
+    #endif
 
-  if (doc.containsKey("dotest")){
-    Serial.println("Testing LEDs...");
 
-    for (size_t i = 0; i < NUMBER_OF_LEDS; i++)
-    {
-      strip.SetPixelColor(i, colorGamma.Correct(RgbColor(255, 0, 0)));
-      strip.Show();
+    if (doc.containsKey("dotest")){
+      Serial.println("Testing LEDs...");
+
+      for (size_t i = 0; i < NUMBER_OF_LEDS; i++)
+      {
+        strip.SetPixelColor(i, colorGamma.Correct(RgbColor(255, 0, 0)));
+        strip.Show();
+      }
+      delay(3000);
+      
+      for (size_t i = 0; i < NUMBER_OF_LEDS; i++)
+      {
+        strip.SetPixelColor(i, colorGamma.Correct(RgbColor(0, 255, 0)));
+        strip.Show();
+      }
+      delay(3000);
+      
+      for (size_t i = 0; i < NUMBER_OF_LEDS; i++)
+      {
+        strip.SetPixelColor(i, colorGamma.Correct(RgbColor(0, 0, 255)));
+        strip.Show();
+      }
+      delay(3000);
+      
+      Serial.println("End of testing, resuming normal operation...");
     }
-     delay(3000);
-    
-    for (size_t i = 0; i < NUMBER_OF_LEDS; i++)
-    {
-      strip.SetPixelColor(i, colorGamma.Correct(RgbColor(0, 255, 0)));
-      strip.Show();
+
+    //  reset
+    if (doc.containsKey("reset")){
+      LogEvent(EVENTCATEGORIES::MqttMsg, 1, "Reset", "");
+      defaultSettings();
+      ESP.reset();
     }
-     delay(3000);
-    
-    for (size_t i = 0; i < NUMBER_OF_LEDS; i++)
-    {
-      strip.SetPixelColor(i, colorGamma.Correct(RgbColor(0, 0, 255)));
-      strip.Show();
+
+    //  restart
+    if (doc.containsKey("restart")){
+      LogEvent(EVENTCATEGORIES::MqttMsg, 2, "Restart", "");
+      ESP.reset();
     }
-     delay(3000);
-    
-    Serial.println("End of testing, resuming normal operation...");
-  }
-
-
-  //  reset
-  if (doc.containsKey("reset")){
-    LogEvent(EVENTCATEGORIES::MqttMsg, 1, "Reset", "");
-    defaultSettings();
-    ESP.reset();
-  }
-
-  //  restart
-  if (doc.containsKey("restart")){
-    LogEvent(EVENTCATEGORIES::MqttMsg, 2, "Restart", "");
-    ESP.reset();
   }
 
 }
@@ -1076,7 +1100,8 @@ void setup() {
   sprintf(defaultSSID, "%s-%u", appConfig.mqttTopic, ESP.getChipId());
   WiFi.hostname(defaultSSID);
 
-  //  GPIO
+  //  GPIOs
+  //  outputs
   pinMode(CONNECTION_STATUS_LED_GPIO, OUTPUT);
   digitalWrite(CONNECTION_STATUS_LED_GPIO, HIGH);
 
@@ -1138,16 +1163,13 @@ void setup() {
 
   //  Timers
   os_timer_setfn(&heartbeatTimer, heartbeatTimerCallback, NULL);
-
   os_timer_arm(&heartbeatTimer, appConfig.heartbeatInterval * 1000, true);
 
   strip.Begin();
   strip.Show();
 
-
-
   //  Randomizer
-  srand(now());
+  SetRandomSeed();
 
   // Set the initial connection state
   connectionState = STATE_CHECK_WIFI_CONNECTION;
@@ -1158,7 +1180,7 @@ void loop(){
 
   if (isAccessPoint){
     if (!isAccessPointCreated){
-      Serial.print(" Could not connect to ");
+      Serial.print("Could not connect to ");
       Serial.print(appConfig.ssid);
       Serial.println("\r\nReverting to Access Point mode.");
 
@@ -1228,7 +1250,7 @@ void loop(){
           WiFi.begin(appConfig.ssid, appConfig.password);
 
           // Initialize iteration counter
-          char attempt = 0;
+          uint8_t attempt = 0;
 
           while ((WiFi.status() != WL_CONNECTED) && (attempt++ < WIFI_CONNECTION_TIMEOUT)) {
             digitalWrite(CONNECTION_STATUS_LED_GPIO, LOW);
@@ -1280,17 +1302,19 @@ void loop(){
         ArduinoOTA.handle();
 
         if (!PSclient.connected()) {
-          PSclient.set_server(appConfig.mqttServer, appConfig.mqttPort);
+          PSclient.setServer(appConfig.mqttServer, appConfig.mqttPort);
+            String clientId = "ESP8266Client-";
+            clientId += String(random(0xffff), HEX);
 
-          if (PSclient.connect("ESP-" + String(ESP.getChipId()), MQTT_CUSTOMER + String("/") + MQTT_PROJECT + String("/") + appConfig.mqttTopic + "/STATE", 0, true, "offline" )){
-            PSclient.set_callback(mqtt_callback);
-            PSclient.subscribe(MQTT_CUSTOMER + String("/") + MQTT_PROJECT + String("/") + appConfig.mqttTopic + "/cmnd", 0);
+          if (PSclient.connect(clientId.c_str(), (MQTT_CUSTOMER + String("/") + MQTT_PROJECT + String("/") + appConfig.mqttTopic + "/STATE").c_str(), 0, true, "offline" )){
+            PSclient.setCallback(mqtt_callback);
 
-            PSclient.publish(MQTT::Publish(MQTT_CUSTOMER + String("/") + MQTT_PROJECT + String("/") + appConfig.mqttTopic + "/STATE", "online" ).set_qos(0).set_retain(true));
+            PSclient.subscribe((MQTT_CUSTOMER + String("/") + MQTT_PROJECT + String("/") + appConfig.mqttTopic + "/cmnd").c_str(), 0);
+
+            PSclient.publish((MQTT_CUSTOMER + String("/") + MQTT_PROJECT + String("/") + appConfig.mqttTopic + "/STATE").c_str(), "online", false);
             LogEvent(EVENTCATEGORIES::Conn, 1, "Node online", WiFi.localIP().toString());
           }
         }
-
 
         if (PSclient.connected()){
           PSclient.loop();
