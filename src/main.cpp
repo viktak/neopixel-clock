@@ -158,7 +158,7 @@ bool loadSettings(config& data) {
   }
   else
   {
-    strcpy(appConfig.mqttTopic, DEFAULT_MQTT_TOPIC);
+    strcpy(appConfig.mqttTopic, defaultSSID);
   }
   
   if (doc["friendlyName"]){
@@ -252,7 +252,7 @@ void defaultSettings(){
   #endif
 
   appConfig.mqttPort = DEFAULT_MQTT_PORT;
-  strcpy(appConfig.mqttTopic, DEFAULT_MQTT_TOPIC);
+  strcpy(appConfig.mqttTopic, defaultSSID);
 
   appConfig.timeZone = 2;
 
@@ -1303,10 +1303,7 @@ void loop(){
 
         if (!PSclient.connected()) {
           PSclient.setServer(appConfig.mqttServer, appConfig.mqttPort);
-            String clientId = "ESP8266Client-";
-            clientId += String(random(0xffff), HEX);
-
-          if (PSclient.connect(clientId.c_str(), (MQTT_CUSTOMER + String("/") + MQTT_PROJECT + String("/") + appConfig.mqttTopic + "/STATE").c_str(), 0, true, "offline" )){
+          if (PSclient.connect(defaultSSID, (MQTT_CUSTOMER + String("/") + MQTT_PROJECT + String("/") + appConfig.mqttTopic + "/STATE").c_str(), 0, true, "offline" )){
             PSclient.setCallback(mqtt_callback);
 
             PSclient.subscribe((MQTT_CUSTOMER + String("/") + MQTT_PROJECT + String("/") + appConfig.mqttTopic + "/cmnd").c_str(), 0);
