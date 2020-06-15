@@ -158,6 +158,7 @@ bool loadSettings(config& data) {
   }
   else
   {
+    sprintf(defaultSSID, "%s-%u", DEFAULT_MQTT_TOPIC, ESP.getChipId());
     strcpy(appConfig.mqttTopic, defaultSSID);
   }
   
@@ -252,6 +253,8 @@ void defaultSettings(){
   #endif
 
   appConfig.mqttPort = DEFAULT_MQTT_PORT;
+
+  sprintf(defaultSSID, "%s-%u", DEFAULT_MQTT_TOPIC, ESP.getChipId());
   strcpy(appConfig.mqttTopic, defaultSSID);
 
   appConfig.timeZone = 2;
@@ -896,7 +899,7 @@ void SendHeartbeat(){
 
     serializeJson(doc, myJsonString);
 
-    PSclient.publish((MQTT_CUSTOMER + String("/") + MQTT_PROJECT + "/" + appConfig.mqttTopic + "/HEARTBEAT").c_str(), myJsonString.c_str(), 0);
+    PSclient.publish((MQTT_CUSTOMER + String("/") + MQTT_PROJECT + "/" + appConfig.mqttTopic + "/HEARTBEAT").c_str(), myJsonString.c_str(), false);
   }
 
   needsHeartbeat = false;
@@ -1015,7 +1018,6 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
       digitalWrite(CONNECTION_STATUS_LED_GPIO, !digitalRead(CONNECTION_STATUS_LED_GPIO));
       delay(50);
     }
-    return;
   }
   else{
     //  It IS a JSON string
@@ -1097,7 +1099,6 @@ void setup() {
     Serial.println("Config loaded.");
   }
 
-  sprintf(defaultSSID, "%s-%u", appConfig.mqttTopic, ESP.getChipId());
   WiFi.hostname(defaultSSID);
 
   //  GPIOs
