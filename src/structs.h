@@ -18,6 +18,10 @@ struct config{
   bool showFiveMinuteMarks = DEFAULT_SHOW_FIVE_MINUTE_MARKS;
   bool showSeconds = DEFAULT_SHOW_SECONDS;
 
+  u_char fiveMinuteMarkBrightness = DEFAULT_FIVE_MINUTE_MARK_BRIGHTNESS;
+  u_char ledMaxBrightness = DEFAULT_LED_MAX_BRIGHTNESS;
+  u_char lastOfTrailBrightness = DEFAULT_LAST_OF_TRAIL_BRIGHTNESS;
+
 };
 
 struct MyAnimationState

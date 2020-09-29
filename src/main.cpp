@@ -199,6 +199,20 @@ bool loadSettings(config& data) {
   if (doc.containsKey("showSeconds"))
     appConfig.showSeconds = doc["showSeconds"];
     
+  if (doc["fiveMinuteMarkBrightness"]) 
+    appConfig.fiveMinuteMarkBrightness = doc["fiveMinuteMarkBrightness"];
+  else
+    appConfig.fiveMinuteMarkBrightness = DEFAULT_FIVE_MINUTE_MARK_BRIGHTNESS;
+
+  if (doc["ledMaxBrightness"]) 
+    appConfig.ledMaxBrightness = doc["ledMaxBrightness"];
+  else
+    appConfig.ledMaxBrightness = DEFAULT_LED_MAX_BRIGHTNESS;
+
+  if (doc["lastofTrailBrightness"]) 
+    appConfig.lastOfTrailBrightness = doc["lastofTrailBrightness"];
+  else
+    appConfig.lastOfTrailBrightness = DEFAULT_LAST_OF_TRAIL_BRIGHTNESS;
 
   return true;
 }
@@ -223,6 +237,11 @@ bool saveSettings() {
   doc["reverseClockDirection"] = appConfig.reverseClockDirection;
   doc["showFiveMinuteMarks"] = appConfig.showFiveMinuteMarks;
   doc["showSeconds"] = appConfig.showSeconds;
+
+  doc["fiveMinuteMarkBrightness"] = appConfig.fiveMinuteMarkBrightness;
+  doc["ledMaxBrightness"] = appConfig.ledMaxBrightness;
+  doc["lastofTrailBrightness"] = appConfig.lastOfTrailBrightness;
+
 
   #ifdef __debugSettings
   serializeJsonPretty(doc,Serial);
@@ -266,6 +285,10 @@ void defaultSettings(){
   appConfig.reverseClockDirection = DEFAULT_REVERSE_CLOCK_DIRECTION;
   appConfig.showFiveMinuteMarks = DEFAULT_SHOW_FIVE_MINUTE_MARKS;
   appConfig.showSeconds = DEFAULT_SHOW_SECONDS;
+
+  appConfig.fiveMinuteMarkBrightness = DEFAULT_FIVE_MINUTE_MARK_BRIGHTNESS;
+  appConfig.ledMaxBrightness = DEFAULT_LED_MAX_BRIGHTNESS;
+  appConfig.lastOfTrailBrightness = DEFAULT_LAST_OF_TRAIL_BRIGHTNESS;
 
   if (!saveSettings()) {
     Serial.println("Failed to save config");
@@ -624,7 +647,6 @@ void handleGeneralSettings() {
     if (s.indexOf("%timezoneslist%")>-1) s.replace("%timezoneslist%", timezoneslist);
     if (s.indexOf("%friendlyname%")>-1) s.replace("%friendlyname%", appConfig.friendlyName);
     if (s.indexOf("%heartbeatinterval%")>-1) s.replace("%heartbeatinterval%", (String)appConfig.heartbeatInterval);
-
     if (s.indexOf("%traillist%")>-1) s.replace("%traillist%", traillist);
     if (s.indexOf("%chkreverse%")>-1) s.replace("%chkreverse%", chkreverse);
 
@@ -736,6 +758,22 @@ void handleClock() {
       LogEvent(EVENTCATEGORIES::Clock, 6, "Show seconds", "false");
     }
 
+    if (server.hasArg("fiveMinuteMarkBrightness")){
+      appConfig.fiveMinuteMarkBrightness = server.arg("fiveMinuteMarkBrightness").toInt();
+      LogEvent(EVENTCATEGORIES::Clock, 7, "New five minute mark brightness", (String)appConfig.fiveMinuteMarkBrightness);
+    }
+
+    if (server.hasArg("ledMaxBrightness")){
+      appConfig.ledMaxBrightness = server.arg("ledMaxBrightness").toInt();
+      LogEvent(EVENTCATEGORIES::Clock, 8, "New max LED brightness", (String)appConfig.ledMaxBrightness);
+    }
+
+    if (server.hasArg("lastofTrailBrightness")){
+      appConfig.lastOfTrailBrightness = server.arg("lastofTrailBrightness").toInt();
+      LogEvent(EVENTCATEGORIES::Clock, 9, "New last of trail brightness", (String)appConfig.lastOfTrailBrightness);
+    }
+
+
     saveSettings();
 
   }
@@ -785,11 +823,14 @@ void handleClock() {
 
     if (s.indexOf("%year%")>-1) s.replace("%year%", (String)year(localTime));
     if (s.indexOf("%pageheader%")>-1) s.replace("%pageheader%", headerString);
-
     if (s.indexOf("%traillist%")>-1) s.replace("%traillist%", traillist);
     if (s.indexOf("%chkreverse%")>-1) s.replace("%chkreverse%", chkreverse);
     if (s.indexOf("%chkfiveminute%")>-1) s.replace("%chkfiveminute%", chkfiveminute);
     if (s.indexOf("%chkshowseconds%")>-1) s.replace("%chkshowseconds%", chkshowseconds);
+    if (s.indexOf("%fiveMinuteMarkBrightness%")>-1) s.replace("%fiveMinuteMarkBrightness%", (String)appConfig.fiveMinuteMarkBrightness);
+    if (s.indexOf("%ledMaxBrightness%")>-1) s.replace("%ledMaxBrightness%", (String)appConfig.ledMaxBrightness);
+    if (s.indexOf("%lastofTrailBrightness%")>-1) s.replace("%lastofTrailBrightness%", (String)appConfig.lastOfTrailBrightness);
+
 
     htmlString+=s;
   }
@@ -930,24 +971,24 @@ void DisplayTime(){
   myHours*=5;
 
   //  Display time and trail
-  int8_t diff = (LED_MAX_BRIGHTNESS - LAST_OF_TRAIL_BRIGHTNESS) / ( appConfig.trailLength - 1);
+  int8_t diff = (appConfig.ledMaxBrightness - appConfig.lastOfTrailBrightness) / ( appConfig.trailLength - 1);
 
   for (int8_t i = 0; i < appConfig.trailLength; i++){
     int8_t offset = 0;
 
     if ( myHours - i < 0 ) offset = NUMBER_OF_LEDS; else offset = 0;
-    buf[(myHours   - i + offset>59?0:myHours   - i + offset)].Blue  = LED_MAX_BRIGHTNESS - diff * i;
+    buf[(myHours   - i + offset>59?0:myHours   - i + offset)].Blue  = appConfig.ledMaxBrightness - diff * i;
 
     //Serial.printf("i: %i\thours: %i\tposition: %i\t\r\n", i, myHours, myHours - i + offset);
 
     if ( myMinutes - i < 0 ) offset = NUMBER_OF_LEDS; else offset = 0;
-    buf[myMinutes - i + offset].Green = LED_MAX_BRIGHTNESS - diff * i;
+    buf[myMinutes - i + offset].Green = appConfig.ledMaxBrightness - diff * i;
 
     //Serial.printf("i: %i\tminutes: %i\tposition: %i\t\r\n", i, myMinutes, myMinutes - i + offset);
 
     if ( appConfig.showSeconds ){
       if ( mySeconds - i < 0 ) offset = NUMBER_OF_LEDS; else offset = 0;
-      buf[mySeconds - i + offset].Red   = LED_MAX_BRIGHTNESS - diff * i;
+      buf[mySeconds - i + offset].Red   = appConfig.ledMaxBrightness - diff * i;
     }
     //Serial.printf("i: %i\tseconds: %i\tposition: %i\t\r\n", i, mySeconds, mySeconds - i + offset);
     //Serial.println();
@@ -963,9 +1004,9 @@ void DisplayTime(){
       bool isGreenLit = buf[i*5].Green;
       bool isBlueLit = buf[i*5].Blue;
 
-      buf[i*5].Red = isRedLit?buf[i*5].Red:FIVE_MINUTE_MARK_BRIGHTNESS;
-      buf[i*5].Green = isGreenLit?buf[i*5].Green:FIVE_MINUTE_MARK_BRIGHTNESS;
-      buf[i*5].Blue = isBlueLit?buf[i*5].Blue:FIVE_MINUTE_MARK_BRIGHTNESS;
+      buf[i*5].Red = isRedLit?buf[i*5].Red:appConfig.fiveMinuteMarkBrightness;
+      buf[i*5].Green = isGreenLit?buf[i*5].Green:appConfig.fiveMinuteMarkBrightness;
+      buf[i*5].Blue = isBlueLit?buf[i*5].Blue:appConfig.fiveMinuteMarkBrightness;
     }
   }
 
