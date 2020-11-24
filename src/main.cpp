@@ -449,7 +449,7 @@ void handleRoot() {
 
   f = LittleFS.open("/index.html", "r");
 
-  String FirmwareVersionString = String(FIRMWARE_VERSION) + " @ " + String(__TIME__) + " - " + String(__DATE__);
+  String FirmwareVersionString = String(FIRMWARE_VERSION);
 
   String s, htmlString;
 
