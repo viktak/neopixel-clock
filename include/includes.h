@@ -35,6 +35,7 @@
 #include "NTP.h"
 
 #include "structs.h"
+#include <TimeChangeRules.h>
 
 #include "user_interface.h"
 
