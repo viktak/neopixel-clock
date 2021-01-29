@@ -153,8 +153,7 @@ bool loadSettings(config& data) {
   }
   else
   {
-    sprintf(defaultSSID, "%s-%u", DEFAULT_MQTT_TOPIC, ESP.getChipId());
-    strcpy(appConfig.mqttTopic, defaultSSID);
+    sprintf(appConfig.mqttTopic, "%s-%u", DEFAULT_MQTT_TOPIC, ESP.getChipId());
   }
   
   if (doc["friendlyName"]){
@@ -208,6 +207,10 @@ bool loadSettings(config& data) {
     appConfig.lastOfTrailBrightness = doc["lastofTrailBrightness"];
   else
     appConfig.lastOfTrailBrightness = DEFAULT_LAST_OF_TRAIL_BRIGHTNESS;
+
+  String ma = WiFi.macAddress();
+  ma.replace(":","");
+  sprintf(defaultSSID, "%s-%s", appConfig.mqttTopic, ma.substring(6, 12).c_str());
 
   return true;
 }
@@ -481,7 +484,8 @@ void handleStatus() {
   f.close();
 
   time_t localTime = timezones[appConfig.timeZone]->toLocal(now(), &tcr);
-  
+  String FirmwareVersionString = String(FIRMWARE_VERSION);
+
   String s;
 
   f = LittleFS.open("/status.html", "r");
@@ -495,6 +499,10 @@ void handleStatus() {
     if (s.indexOf("%pageheader%")>-1) s.replace("%pageheader%", headerString);
     if (s.indexOf("%year%")>-1) s.replace("%year%", (String)year(localTime));
     if (s.indexOf("%chipid%")>-1) s.replace("%chipid%", (String)ESP.getChipId());
+    if (s.indexOf("%hardwareid%")>-1) s.replace("%hardwareid%", HARDWARE_ID);
+    if (s.indexOf("%hardwareversion%")>-1) s.replace("%hardwareversion%", HARDWARE_VERSION);
+    if (s.indexOf("%firmwareid%")>-1) s.replace("%firmwareid%", SOFTWARE_ID);
+    if (s.indexOf("%firmwareversion%")>-1) s.replace("%firmwareversion%", FirmwareVersionString);
     if (s.indexOf("%uptime%")>-1) s.replace("%uptime%", TimeIntervalToString(millis()/1000));
     if (s.indexOf("%currenttime%")>-1) s.replace("%currenttime%", DateTimeToString(localTime));
     if (s.indexOf("%lastresetreason%")>-1) s.replace("%lastresetreason%", ESP.getResetReason());
