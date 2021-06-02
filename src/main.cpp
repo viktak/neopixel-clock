@@ -976,18 +976,18 @@ void DisplayTime(){
     int8_t offset = 0;
 
     if ( myHours - i < 0 ) offset = NUMBER_OF_LEDS; else offset = 0;
-    buf[(myHours   - i + offset>59?0:myHours   - i + offset)].Blue  = appConfig.ledMaxBrightness - diff * i;
+    buf[(myHours   - i + offset>59?0:myHours   - i + offset)].Red  = appConfig.ledMaxBrightness - diff * i;
 
     //Serial.printf("i: %i\thours: %i\tposition: %i\t\r\n", i, myHours, myHours - i + offset);
 
     if ( myMinutes - i < 0 ) offset = NUMBER_OF_LEDS; else offset = 0;
-    buf[myMinutes - i + offset].Green = appConfig.ledMaxBrightness - diff * i;
+    buf[myMinutes - i + offset].Blue = appConfig.ledMaxBrightness - diff * i;
 
     //Serial.printf("i: %i\tminutes: %i\tposition: %i\t\r\n", i, myMinutes, myMinutes - i + offset);
 
     if ( appConfig.showSeconds ){
       if ( mySeconds - i < 0 ) offset = NUMBER_OF_LEDS; else offset = 0;
-      buf[mySeconds - i + offset].Red   = appConfig.ledMaxBrightness - diff * i;
+      buf[mySeconds - i + offset].Green   = appConfig.ledMaxBrightness - diff * i;
     }
     //Serial.printf("i: %i\tseconds: %i\tposition: %i\t\r\n", i, mySeconds, mySeconds - i + offset);
     //Serial.println();
