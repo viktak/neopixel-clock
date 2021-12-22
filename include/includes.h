@@ -3,13 +3,15 @@
 
 #include "version.h"
 
+#include "../../../ActoSenso/Nodes/_common/debug.h"
+
 #include "defines.h"
-#include "../../_common/defines.h"
+#include "../../../ActoSenso/Nodes/_common/defines.h"
 
 #include "enums.h"
-#include "../../_common/enums.h"
+#include "../../../ActoSenso/Nodes/_common/enums.h"
 
-#include "../../_common/variables.cpp"
+#include "../../../ActoSenso/Nodes/_common/variables.cpp"
 
 #include <cstdlib>
 #include <string>

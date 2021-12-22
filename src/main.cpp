@@ -1,6 +1,7 @@
 #define __debugSettings
 #include "includes.h"
 
+
 //  Web server
 ESP8266WebServer server(80);
 
@@ -46,7 +47,7 @@ void LogEvent(int Category, int ID, String Title, String Data){
     msg += "\"Title\":\"" + Title + "\",";
     msg += "\"Data\":\"" + Data + "\"}";
 
-    Serial.println(msg);
+    debugln(msg);
 
     PSclient.publish((MQTT_CUSTOMER + String("/") + MQTT_PROJECT + String("/") + appConfig.mqttTopic + "/log").c_str(), msg.c_str(), false);
   }
@@ -80,14 +81,14 @@ void heartbeatTimerCallback(void *pArg) {
 bool loadSettings(config& data) {
   File configFile = LittleFS.open("/config.json", "r");
   if (!configFile) {
-    Serial.println("Failed to open config file");
+    debugln("Failed to open config file");
     LogEvent(EVENTCATEGORIES::System, 1, "FS failure", "Failed to open config file.");
     return false;
   }
 
   size_t size = configFile.size();
   if (size > 1024) {
-    Serial.println("Config file size is too large");
+    debugln("Config file size is too large");
     LogEvent(EVENTCATEGORIES::System, 2, "FS failure", "Config file size is too large.");
     return false;
   }
@@ -105,9 +106,9 @@ bool loadSettings(config& data) {
   DeserializationError error = deserializeJson(doc, buf.get());
 
   if (error) {
-    Serial.println("Failed to parse config file");
+    debugln("Failed to parse config file");
     LogEvent(EVENTCATEGORIES::System, 3, "FS failure", "Failed to parse config file.");
-    Serial.println(error.c_str());
+    debugln(error.c_str());
     return false;
   }
 
@@ -123,7 +124,7 @@ bool loadSettings(config& data) {
   {
     strcpy(appConfig.ssid, defaultSSID);
   }
-  
+
   if (doc["password"]){
     strcpy(appConfig.password, doc["password"]);
   }
@@ -131,7 +132,7 @@ bool loadSettings(config& data) {
   {
     strcpy(appConfig.password, DEFAULT_PASSWORD);
   }
-  
+
   if (doc["mqttServer"]){
     strcpy(appConfig.mqttServer, doc["mqttServer"]);
   }
@@ -139,7 +140,7 @@ bool loadSettings(config& data) {
   {
     strcpy(appConfig.mqttServer, DEFAULT_MQTT_SERVER);
   }
-  
+
   if (doc["mqttPort"]){
     appConfig.mqttPort = doc["mqttPort"];
   }
@@ -147,7 +148,7 @@ bool loadSettings(config& data) {
   {
     appConfig.mqttPort = DEFAULT_MQTT_PORT;
   }
-  
+
   if (doc["mqttTopic"]){
     strcpy(appConfig.mqttTopic, doc["mqttTopic"]);
   }
@@ -155,7 +156,7 @@ bool loadSettings(config& data) {
   {
     sprintf(appConfig.mqttTopic, "%s-%u", DEFAULT_MQTT_TOPIC, ESP.getChipId());
   }
-  
+
   if (doc["friendlyName"]){
     strcpy(appConfig.friendlyName, doc["friendlyName"]);
   }
@@ -163,7 +164,7 @@ bool loadSettings(config& data) {
   {
     strcpy(appConfig.friendlyName, NODE_DEFAULT_FRIENDLY_NAME);
   }
-  
+
   if (doc["timezone"]){
     appConfig.timeZone = doc["timezone"];
   }
@@ -171,7 +172,7 @@ bool loadSettings(config& data) {
   {
     appConfig.timeZone = 0;
   }
-  
+
   if (doc["heartbeatInterval"]){
     appConfig.heartbeatInterval = doc["heartbeatInterval"];
   }
@@ -179,7 +180,7 @@ bool loadSettings(config& data) {
   {
     appConfig.heartbeatInterval = DEFAULT_HEARTBEAT_INTERVAL;
   }
-  
+
   if (doc["trailLength"]){
     appConfig.trailLength = doc["trailLength"];
   }
@@ -207,10 +208,6 @@ bool loadSettings(config& data) {
     appConfig.lastOfTrailBrightness = doc["lastofTrailBrightness"];
   else
     appConfig.lastOfTrailBrightness = DEFAULT_LAST_OF_TRAIL_BRIGHTNESS;
-
-  String ma = WiFi.macAddress();
-  ma.replace(":","");
-  sprintf(defaultSSID, "%s-%s", appConfig.mqttTopic, ma.substring(6, 12).c_str());
 
   return true;
 }
@@ -248,7 +245,7 @@ bool saveSettings() {
 
   File configFile = LittleFS.open("/config.json", "w");
   if (!configFile) {
-    Serial.println("Failed to open config file for writing");
+    debugln("Failed to open config file for writing");
     LogEvent(System, 4, "FS failure", "Failed to open config file for writing.");
     return false;
   }
@@ -289,9 +286,9 @@ void defaultSettings(){
   appConfig.lastOfTrailBrightness = DEFAULT_LAST_OF_TRAIL_BRIGHTNESS;
 
   if (!saveSettings()) {
-    Serial.println("Failed to save config");
+    debugln("Failed to save config");
   } else {
-    Serial.println("Config saved");
+    debugln("Config saved");
   }
 }
 
@@ -484,8 +481,8 @@ void handleStatus() {
   f.close();
 
   time_t localTime = timezones[appConfig.timeZone]->toLocal(now(), &tcr);
-  String FirmwareVersionString = String(FIRMWARE_VERSION);
 
+  String FirmwareVersionString = String(FIRMWARE_VERSION);
   String s;
 
   f = LittleFS.open("/status.html", "r");
@@ -494,7 +491,7 @@ void handleStatus() {
 
   while (f.available()){
     s = f.readStringUntil('\n');
- 
+
     //  System information
     if (s.indexOf("%pageheader%")>-1) s.replace("%pageheader%", headerString);
     if (s.indexOf("%year%")>-1) s.replace("%year%", (String)year(localTime));
@@ -578,24 +575,27 @@ void handleGeneralSettings() {
 
     //  MQTT settings
     if (server.hasArg("mqttbroker")){
-      if ((String)appConfig.mqttServer != server.arg("mqttbroker"))
-        mqttDirty = true;
-        sprintf(appConfig.mqttServer, "%s", server.arg("mqttbroker").c_str());
-        LogEvent(EVENTCATEGORIES::MqttParamChange, 1, "New MQTT broker", appConfig.mqttServer);
+        if ((String)appConfig.mqttServer != server.arg("mqttbroker")){
+            mqttDirty = true;
+            sprintf(appConfig.mqttServer, "%s", server.arg("mqttbroker").c_str());
+            LogEvent(EVENTCATEGORIES::MqttParamChange, 1, "New MQTT broker", appConfig.mqttServer);
+        }
     }
 
     if (server.hasArg("mqttport")){
-      if (appConfig.mqttPort != atoi(server.arg("mqttport").c_str()))
-        mqttDirty = true;
-      appConfig.mqttPort = atoi(server.arg("mqttport").c_str());
-      LogEvent(EVENTCATEGORIES::MqttParamChange, 2, "New MQTT port", server.arg("mqttport").c_str());
+        if (appConfig.mqttPort != atoi(server.arg("mqttport").c_str())){
+            mqttDirty = true;
+            appConfig.mqttPort = atoi(server.arg("mqttport").c_str());
+            LogEvent(EVENTCATEGORIES::MqttParamChange, 2, "New MQTT port", server.arg("mqttport").c_str());
+        }
     }
 
     if (server.hasArg("mqtttopic")){
-      if ((String)appConfig.mqttTopic != server.arg("mqtttopic"))
-        mqttDirty = true;
-        sprintf(appConfig.mqttTopic, "%s", server.arg("mqtttopic").c_str());
-        LogEvent(EVENTCATEGORIES::MqttParamChange, 1, "New MQTT topic", appConfig.mqttTopic);
+        if ((String)appConfig.mqttTopic != server.arg("mqtttopic")){
+            mqttDirty = true;
+            sprintf(appConfig.mqttTopic, "%s", server.arg("mqtttopic").c_str());
+            LogEvent(EVENTCATEGORIES::MqttParamChange, 1, "New MQTT topic", appConfig.mqttTopic);
+        }
     }
 
     if (mqttDirty)
@@ -617,9 +617,9 @@ void handleGeneralSettings() {
 
   String s, htmlString, timezoneslist, traillist, chkreverse;
 
-  char ss[2];
+  char ss[sizeof(int)];
 
-  for (signed char i = 0; i < sizeof(tzDescriptions)/sizeof(tzDescriptions[0]); i++) {
+  for (unsigned long i = 0; i < sizeof(tzDescriptions)/sizeof(tzDescriptions[0]); i++) {
     itoa(i, ss, DEC);
     timezoneslist+="<option ";
     if (appConfig.timeZone == i){
@@ -682,8 +682,8 @@ void handleNetworkSettings() {
 
   File f = LittleFS.open("/pageheader.html", "r");
 
-  String headerString;
 
+  String headerString;
   if (f.available()) headerString = f.readString();
   f.close();
 
@@ -778,7 +778,9 @@ void handleClock() {
   }
 
   File f = LittleFS.open("/pageheader.html", "r");
+
   String headerString;
+
   if (f.available()) headerString = f.readString();
   f.close();
 
@@ -788,7 +790,7 @@ void handleClock() {
 
   String s, htmlString, traillist, chkreverse, chkfiveminute, chkshowseconds;
 
-  char sss[2];
+  char sss[sizeof(int)];
 
   for (size_t i = 1; i < 10; i++){
     itoa(i, sss, DEC);
@@ -916,14 +918,15 @@ void SendHeartbeat(){
 
     time_t localTime = timezones[appConfig.timeZone]->toLocal(now(), &tcr);
 
-    const size_t capacity = JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(6) + 180;
-    StaticJsonDocument<capacity> doc;
+    const size_t capacity = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(5) + 200;
+    DynamicJsonDocument doc(capacity);
 
-    doc["Time"] = DateTimeToString(localTime);
-    doc["Node"] = ESP.getChipId();
-    doc["Freeheap"] = ESP.getFreeHeap();
-    doc["FriendlyName"] = appConfig.friendlyName;
-    doc["HeartbeatInterval"] = appConfig.heartbeatInterval;
+    JsonObject sysDetails = doc.createNestedObject("System");
+    sysDetails["Time"] = DateTimeToString(localTime);
+    sysDetails["Node"] = ESP.getChipId();
+    sysDetails["Freeheap"] = ESP.getFreeHeap();
+    sysDetails["FriendlyName"] = appConfig.friendlyName;
+    sysDetails["HeartbeatInterval"] = appConfig.heartbeatInterval;
 
     JsonObject wifiDetails = doc.createNestedObject("Wifi");
     wifiDetails["SSId"] = String(WiFi.SSID());
@@ -938,8 +941,8 @@ void SendHeartbeat(){
     String myJsonString;
 
     serializeJson(doc, myJsonString);
+    PSclient.publish((MQTT_CUSTOMER + String("/") + MQTT_PROJECT + String("/") + appConfig.mqttTopic + "/HEARTBEAT").c_str(), myJsonString.c_str(), false);
 
-    PSclient.publish((MQTT_CUSTOMER + String("/") + MQTT_PROJECT + "/" + appConfig.mqttTopic + "/HEARTBEAT").c_str(), myJsonString.c_str(), false);
   }
 
   needsHeartbeat = false;
@@ -967,7 +970,11 @@ void DisplayTime(){
   // myMinutes = mm;
   // mySeconds = ss;
 
-  myHours*=5;
+    myHours %= 12;
+
+    myHours*=5;
+    myHours+=myMinutes/12;
+
 
   //  Display time and trail
   int8_t diff = (appConfig.ledMaxBrightness - appConfig.lastOfTrailBrightness) / ( appConfig.trailLength - 1);
@@ -976,21 +983,20 @@ void DisplayTime(){
     int8_t offset = 0;
 
     if ( myHours - i < 0 ) offset = NUMBER_OF_LEDS; else offset = 0;
-    buf[(myHours   - i + offset>59?0:myHours   - i + offset)].Red  = appConfig.ledMaxBrightness - diff * i;
+    buf[((myHours   - i + offset>59?0:myHours   - i + offset)) % NUMBER_OF_LEDS].Red  = appConfig.ledMaxBrightness - diff * i;
 
-    //Serial.printf("i: %i\thours: %i\tposition: %i\t\r\n", i, myHours, myHours - i + offset);
+    // Serial.printf("i: %i\thours: %i\tposition: %i\t\r\n", i, myHours, myHours - i + offset);
 
     if ( myMinutes - i < 0 ) offset = NUMBER_OF_LEDS; else offset = 0;
     buf[myMinutes - i + offset].Blue = appConfig.ledMaxBrightness - diff * i;
 
-    //Serial.printf("i: %i\tminutes: %i\tposition: %i\t\r\n", i, myMinutes, myMinutes - i + offset);
+    // Serial.printf("i: %i\tminutes: %i\tposition: %i\t\r\n", i, myMinutes, myMinutes - i + offset);
 
     if ( appConfig.showSeconds ){
       if ( mySeconds - i < 0 ) offset = NUMBER_OF_LEDS; else offset = 0;
       buf[mySeconds - i + offset].Green   = appConfig.ledMaxBrightness - diff * i;
     }
-    //Serial.printf("i: %i\tseconds: %i\tposition: %i\t\r\n", i, mySeconds, mySeconds - i + offset);
-    //Serial.println();
+    // Serial.printf("i: %i\tseconds: %i\tposition: %i\t\r\n\r\n", i, mySeconds, mySeconds - i + offset);
   }
 
   //Serial.println();
@@ -1035,25 +1041,26 @@ void DisplayTime(){
       else
       strip.SetPixelColor(i, colorGamma.Correct(RgbColor(buf[i].Red, buf[i].Green, buf[i].Blue)));
   }
+  strip.Show();
 }
 
 void mqtt_callback(char* topic, byte* payload, unsigned int length) {
 
-  Serial.print("Topic:\t\t");
-  Serial.println(topic);
+  debug("Topic:\t\t");
+  debugln(topic);
 
-  Serial.print("Payload:\t");
+  debug("Payload:\t");
   for (unsigned int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
+    debug((char)payload[i]);
   }
-  Serial.println();
+  debugln();
 
   StaticJsonDocument<JSON_MQTT_COMMAND_SIZE> doc;
   DeserializationError error = deserializeJson(doc, payload);
 
   if (error) {
-    Serial.println("Failed to parse incoming string.");
-    Serial.println(error.c_str());
+    debugln("Failed to parse incoming string.");
+    debugln(error.c_str());
     for (size_t i = 0; i < 10; i++) {
       digitalWrite(CONNECTION_STATUS_LED_GPIO, !digitalRead(CONNECTION_STATUS_LED_GPIO));
       delay(50);
@@ -1069,7 +1076,7 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
 
 
     if (doc.containsKey("dotest")){
-      Serial.println("Testing LEDs...");
+      debugln("Testing LEDs...");
 
       for (size_t i = 0; i < NUMBER_OF_LEDS; i++)
       {
@@ -1092,7 +1099,7 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
       }
       delay(3000);
       
-      Serial.println("End of testing, resuming normal operation...");
+      debugln("End of testing, resuming normal operation...");
     }
 
     //  reset
@@ -1112,108 +1119,96 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
 }
 
 void setup() {
-  delay(1); //  Needed for PlatformIO serial monitor
-  Serial.begin(DEBUG_SPEED);
-  Serial.setDebugOutput(false);
-  Serial.print("\n\n\n\rBooting node:     ");
-  Serial.print(ESP.getChipId());
-  Serial.println("...");
+    delay(1); //  Needed for PlatformIO serial monitor
+    Serial.begin(DEBUG_SPEED);
+    Serial.setDebugOutput(false);
+    Serial.printf("\n\n\n\rBooting node:\t%u...\r\n", ESP.getChipId());
+    Serial.printf("Hardware ID:\t\t%s\r\nHardware version:\t%s\r\nSoftware ID:\t\t%s\r\nSoftware version:\t%s\r\n\n", HARDWARE_ID, HARDWARE_VERSION, SOFTWARE_ID, FIRMWARE_VERSION);
 
-  String FirmwareVersionString = String(FIRMWARE_VERSION) + " @ " + String(__TIME__) + " - " + String(__DATE__);
 
-  Serial.println("Hardware ID:      " + (String)HARDWARE_ID);
-  Serial.println("Hardware version: " + (String)HARDWARE_VERSION);
-  Serial.println("Software ID:      " + (String)SOFTWARE_ID);
-  Serial.println("Software version: " + FirmwareVersionString);
-  Serial.println();
-
-  //  File system
-  if (!LittleFS.begin()){
-    Serial.println("Error: Failed to initialize the filesystem!");
-  }
-
-  if (!loadSettings(appConfig)) {
-    Serial.println("Failed to load config, creating default settings...");
-    defaultSettings();
-  } else {
-    Serial.println("Config loaded.");
-  }
-
-  WiFi.hostname(defaultSSID);
-
-  //  GPIOs
-  //  outputs
-  pinMode(CONNECTION_STATUS_LED_GPIO, OUTPUT);
-  digitalWrite(CONNECTION_STATUS_LED_GPIO, HIGH);
-
-  //  OTA
-  ArduinoOTA.onStart([]() {
-    Serial.println("OTA started.");
-  });
-
-  ArduinoOTA.onEnd([]() {
-    Serial.println("\nOTA finished.");
-  });
-
-  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-    if (progress % OTA_BLINKING_RATE == 0){
-      if (digitalRead(CONNECTION_STATUS_LED_GPIO)==HIGH)
-        digitalWrite(CONNECTION_STATUS_LED_GPIO, LOW);
-        else
-        digitalWrite(CONNECTION_STATUS_LED_GPIO, HIGH);
+    //  File system
+    if (!LittleFS.begin()){
+        Serial.printf("Error: Failed to initialize the filesystem!\r\n");
     }
-  });
 
-  ArduinoOTA.onError([](ota_error_t error) {
-    Serial.printf("Error[%u]: ", error);
-    if (error == OTA_AUTH_ERROR) Serial.println("Authentication failed.");
-    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin failed.");
-    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect failed.");
-    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive failed.");
-    else if (error == OTA_END_ERROR) Serial.println("End failed.");
-  });
+    if (!loadSettings(appConfig)) {
+        Serial.printf("Failed to load config, creating default settings...");
+        defaultSettings();
+    } else {
+        debugln("Config loaded.");
+    }
 
-  ArduinoOTA.begin();
+    //  GPIO
+    pinMode(CONNECTION_STATUS_LED_GPIO, OUTPUT);
+    digitalWrite(CONNECTION_STATUS_LED_GPIO, HIGH);
 
-  Serial.println();
 
-  server.on("/", handleStatus);
-  server.on("/status.html", handleStatus);
-  server.on("/generalsettings.html", handleGeneralSettings);
-  server.on("/clock.html", handleClock);
-  server.on("/networksettings.html", handleNetworkSettings);
-  server.on("/tools.html", handleTools);
-  server.on("/login.html", handleLogin);
+    //  OTA
+    ArduinoOTA.onStart([]() {
+    Serial.printf("OTA started.\r\n");
+    });
 
-  server.onNotFound(handleNotFound);
+    ArduinoOTA.onEnd([]() {
+    Serial.printf("\nOTA finished.\r\n");
+    });
 
-  //  Web server
-  if (MDNS.begin("esp8266")) {
-    Serial.println("MDNS responder started.");
-  }
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+        Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+        if (progress % OTA_BLINKING_RATE == 0){
+        if (digitalRead(CONNECTION_STATUS_LED_GPIO)==HIGH)
+            digitalWrite(CONNECTION_STATUS_LED_GPIO, LOW);
+            else
+            digitalWrite(CONNECTION_STATUS_LED_GPIO, HIGH);
+        }
+    });
 
-  //  Start HTTP (web) server
-  server.begin();
-  Serial.println("HTTP server started.");
+    ArduinoOTA.onError([](ota_error_t error) {
+        Serial.printf("Error[%u]: ", error);
+        if (error == OTA_AUTH_ERROR) Serial.println("Authentication failed.");
+        else if (error == OTA_BEGIN_ERROR) Serial.println("Begin failed.");
+        else if (error == OTA_CONNECT_ERROR) Serial.println("Connect failed.");
+        else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive failed.");
+        else if (error == OTA_END_ERROR) Serial.println("End failed.");
+    });
 
-  //  Authenticate HTTP requests
-  const char * headerkeys[] = {"User-Agent","Cookie"} ;
-  size_t headerkeyssize = sizeof(headerkeys)/sizeof(char*);
-  server.collectHeaders(headerkeys, headerkeyssize );
+    ArduinoOTA.begin();
 
-  //  Timers
-  os_timer_setfn(&heartbeatTimer, heartbeatTimerCallback, NULL);
-  os_timer_arm(&heartbeatTimer, appConfig.heartbeatInterval * 1000, true);
+    debugln();
 
-  strip.Begin();
-  strip.Show();
+    server.on("/", handleStatus);
+    server.on("/status.html", handleStatus);
+    server.on("/generalsettings.html", handleGeneralSettings);
+    server.on("/clock.html", handleClock);
+    server.on("/networksettings.html", handleNetworkSettings);
+    server.on("/tools.html", handleTools);
+    server.on("/login.html", handleLogin);
 
-  //  Randomizer
-  SetRandomSeed();
+    server.onNotFound(handleNotFound);
 
-  // Set the initial connection state
-  connectionState = STATE_CHECK_WIFI_CONNECTION;
+    //  Start HTTP (web) server
+    server.begin();
+    debugln("HTTP server started.");
+
+    //  Authenticate HTTP requests
+    const char * headerkeys[] = {"User-Agent","Cookie"} ;
+    size_t headerkeyssize = sizeof(headerkeys)/sizeof(char*);
+    server.collectHeaders(headerkeys, headerkeyssize );
+
+    //  Timers
+    os_timer_setfn(&heartbeatTimer, heartbeatTimerCallback, NULL);
+    os_timer_arm(&heartbeatTimer, appConfig.heartbeatInterval * 1000, true);
+
+    //  Randomizer
+    SetRandomSeed();
+
+    strip.Begin();
+    strip.Show();
+
+
+    // Set the initial connection state
+    connectionState = STATE_CHECK_WIFI_CONNECTION;
+
+    Serial.println("Setup complete.");
 
 }
 
@@ -1221,37 +1216,29 @@ void loop(){
 
   if (isAccessPoint){
     if (!isAccessPointCreated){
-      Serial.print("Could not connect to ");
-      Serial.print(appConfig.ssid);
-      Serial.println("\r\nReverting to Access Point mode.");
+        Serial.printf("Could not connect to WiFI network %s.\r\nReverting to Access Point mode.\r\n", appConfig.ssid);
 
-      delay(500);
+        delay(500);
 
-      WiFi.mode(WiFiMode::WIFI_AP);
-      WiFi.softAP(defaultSSID, DEFAULT_PASSWORD);
+        WiFi.mode(WiFiMode::WIFI_AP);
+        sprintf(defaultSSID, "%s-%u", DEFAULT_MQTT_TOPIC, ESP.getChipId());
+        WiFi.softAP(defaultSSID, DEFAULT_PASSWORD);
 
-      IPAddress myIP;
-      myIP = WiFi.softAPIP();
-      isAccessPointCreated = true;
+        IPAddress myIP;
+        myIP = WiFi.softAPIP();
+        isAccessPointCreated = true;
 
-      Serial.println("Access point created. Use the following information to connect to the ESP device, then follow the on-screen instructions to connect to a different wifi network:");
+        if (MDNS.begin(defaultSSID)) debugln("MDNS responder started.");
 
-      Serial.print("SSID:\t\t\t");
-      Serial.println(defaultSSID);
+        Serial.printf("Access point created. Use the following information to connect to the ESP device, then follow the on-screen instructions to connect to a different wifi network:\r\n\r\nSSID:\t\t\t%s\r\nPassword:\t\t%s\r\nAccess point address:\t", defaultSSID, DEFAULT_PASSWORD);
+        Serial.println(myIP);
 
-      Serial.print("Password:\t\t");
-      Serial.println(DEFAULT_PASSWORD);
+        Serial.println();
+        Serial.println("Note: The device will reset in 5 minutes.");
 
-      Serial.print("Access point address:\t");
-      Serial.println(myIP);
-
-      Serial.println();
-      Serial.println("Note: The device will reset in 5 minutes.");
-
-
-      os_timer_setfn(&accessPointTimer, accessPointTimerCallback, NULL);
-      os_timer_arm(&accessPointTimer, ACCESS_POINT_TIMEOUT, true);
-      os_timer_disarm(&heartbeatTimer);
+        os_timer_setfn(&accessPointTimer, accessPointTimerCallback, NULL);
+        os_timer_arm(&accessPointTimer, ACCESS_POINT_TIMEOUT, true);
+        os_timer_disarm(&heartbeatTimer);
     }
     server.handleClient();
   }
@@ -1270,7 +1257,7 @@ void loop(){
           // Wifi is connected so check Internet
           digitalWrite(CONNECTION_STATUS_LED_GPIO, LOW);
           connectionState = STATE_CHECK_INTERNET_CONNECTION;
-          
+
           server.handleClient();
         }
         break;
@@ -1288,6 +1275,7 @@ void loop(){
           WiFi.mode(WIFI_STA);
 
           // Start connection process
+          WiFi.hostname((String)appConfig.mqttTopic);
           WiFi.begin(appConfig.ssid, appConfig.password);
 
           // Initialize iteration counter
@@ -1301,8 +1289,7 @@ void loop(){
             delay(950);
           }
           if (attempt >= WIFI_CONNECTION_TIMEOUT) {
-            Serial.println();
-            Serial.println("Could not connect to WiFi");
+            Serial.println("\r\nCould not connect to WiFi");
             delay(100);
 
             isAccessPoint=true;
@@ -1313,6 +1300,8 @@ void loop(){
           Serial.println(" Success!");
           Serial.print("IP address: ");
           Serial.println(WiFi.localIP());
+          if (MDNS.begin(appConfig.mqttTopic)) debugln("MDNS responder started.");
+
           connectionState = STATE_CHECK_INTERNET_CONNECTION;
         }
         break;
@@ -1323,13 +1312,13 @@ void loop(){
         if (checkInternetConnection()) {
           // We have an Internet connection
 
-          if (! ntpInitialized) {
+          if (!ntpInitialized) {
             // We are connected to the Internet for the first time so set NTP provider
             initNTP();
 
             ntpInitialized = true;
 
-            Serial.println("Connected to the Internet.");
+            debugln("Connected to the Internet.");
           }
 
           connectionState = STATE_INTERNET_CONNECTED;
@@ -1345,14 +1334,16 @@ void loop(){
         if (!PSclient.connected()) {
           PSclient.setServer(appConfig.mqttServer, appConfig.mqttPort);
           if (PSclient.connect(defaultSSID, (MQTT_CUSTOMER + String("/") + MQTT_PROJECT + String("/") + appConfig.mqttTopic + "/STATE").c_str(), 0, true, "offline" )){
-            PSclient.setCallback(mqtt_callback);
+                PSclient.setBufferSize(10240);
+                PSclient.setCallback(mqtt_callback);
 
-            PSclient.subscribe((MQTT_CUSTOMER + String("/") + MQTT_PROJECT + String("/") + appConfig.mqttTopic + "/cmnd").c_str(), 0);
+                PSclient.subscribe((MQTT_CUSTOMER + String("/") + MQTT_PROJECT + String("/") + appConfig.mqttTopic + "/cmnd").c_str(), 0);
 
-            PSclient.publish((MQTT_CUSTOMER + String("/") + MQTT_PROJECT + String("/") + appConfig.mqttTopic + "/STATE").c_str(), "online", true);
-            LogEvent(EVENTCATEGORIES::Conn, 1, "Node online", WiFi.localIP().toString());
+                PSclient.publish((MQTT_CUSTOMER + String("/") + MQTT_PROJECT + String("/") + appConfig.mqttTopic + "/STATE").c_str(), "online", true);
+                LogEvent(EVENTCATEGORIES::Conn, 1, "Node online", WiFi.localIP().toString());
           }
         }
+
 
         if (PSclient.connected()){
           PSclient.loop();
@@ -1368,8 +1359,6 @@ void loop(){
           DisplayTime();
           oldSecs = currentSecond;
         }
-
-        strip.Show();
 
         // Set next connection state
         connectionState = STATE_CHECK_WIFI_CONNECTION;

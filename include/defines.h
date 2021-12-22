@@ -4,7 +4,7 @@
 #define MQTT_CUSTOMER           "viktak"
 #define MQTT_PROJECT            "spiti"
 
-#define HARDWARE_ID             "Word Clock"
+#define HARDWARE_ID             "LightPanel Controller"
 #define HARDWARE_VERSION        "1.0"
 #define SOFTWARE_ID             "NeoPixel Clock"
 
