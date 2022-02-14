@@ -8,4 +8,13 @@ enum BUTTON_STATES {
   BUTTON_LONG_PRESSED    //  button pressed for at least BUTTON_LONG_PRESS_TRESHOLD milliseconds
 };
 
+// Connection FSM operational states
+enum CONNECTION_STATE {
+  STATE_CHECK_WIFI_CONNECTION,
+  STATE_WIFI_CONNECT,
+  STATE_CHECK_INTERNET_CONNECTION,
+  STATE_INTERNET_CONNECTED
+};
+
+
 #endif
