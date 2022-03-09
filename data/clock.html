@@ -1,7 +1,29 @@
 ﻿<!DOCTYPE html>
 
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
-%pageheader%
+
+<head>
+    <meta charset="utf-8" />
+
+    <title>ActoSenso Node</title>
+    <link href="favico.ico" rel="shortcut icon" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- jQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+
+    <!-- Latest compiled and minified CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootswatch/3.3.6/cerulean/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-fUMURLTdEcpeYHly3PAwggI3l2UvdHNg/I+8LRph7hLDcAZm77YfDx3Tjum9d3vK" crossorigin="anonymous">
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"
+        integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS"
+        crossorigin="anonymous"></script>
+
+</head>
+
 <body>
     <div class="container-fluid">
         <nav class="navbar navbar-default">
@@ -18,14 +40,19 @@
                     <ul class="nav navbar-nav">
                         <li><a href="/status.html">Status</a></li>
                         <li><a href="/generalsettings.html">General</a></li>
-                        <li><a href="/networksettings.html">Network</a></li>
                         <li class="active"><a href="/clock.html">Clock</a></li>
+                        <li><a href="/networksettings.html">Network</a></li>
                         <li><a href="/tools.html">Tools</a></li>
                         <li><a href="/login.html?DISCONNECT=YES">Logout</a></li>
                     </ul>
                 </div>
             </div>
         </nav>
+
+        <div class="well">
+            You can set up how you want your light strip to work.
+        </div>
+
         <form class="form-horizontal" method="post">
             <div class="well">
                 Control your clock here.
@@ -40,83 +67,69 @@
                     <div class="form-group">
                         <label class="control-label col-sm-2" for="trailselector">Trail length:</label>
                         <div class="col-sm-10">
-                          <select class="form-control" name="trailselector" id="trailselector">
-                            %traillist%
-                          </select>
+                            <select class="form-control" name="trailselector" id="trailselector">
+                                %traillist%
+                            </select>
                         </div>
                     </div>
                     <div class="form-group">
                         <label class="control-label col-sm-2" for="reverse">Reverse clock</label>
                         <div class="col-sm-10">
-                          <div class="checkbox">
-                            <label>
-                              %chkreverse%
-                            </label>
-                          </div>
+                            <div class="checkbox">
+                                <label>
+                                    %chkreverse%
+                                </label>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label class="control-label col-sm-2" for="showfivemark">Show 5 minute dots</label>
                         <div class="col-sm-10">
-                          <div class="checkbox">
-                            <label>
-                              %chkfiveminute%
-                            </label>
-                          </div>
+                            <div class="checkbox">
+                                <label>
+                                    %chkfiveminute%
+                                </label>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label class="control-label col-sm-2" for="showseconds">Show seconds</label>
                         <div class="col-sm-10">
-                          <div class="checkbox">
-                            <label>
-                              %chkshowseconds%
-                            </label>
-                          </div>
+                            <div class="checkbox">
+                                <label>
+                                    %chkshowseconds%
+                                </label>
+                            </div>
                         </div>
                     </div>
 
                     <div class="form-group">
-                      <label class="control-label col-sm-2" for="fiveMinuteMarkBrightness">Brightness of five minute dots:</label>
-                      <div class="col-sm-10">
-                          <input type="number" class="form-control" id="fiveMinuteMarkBrightness" name="fiveMinuteMarkBrightness" placeholder="Enter a value 1-255" value="%fiveMinuteMarkBrightness%" maxlength="3">
-                      </div>
+                        <label class="control-label col-sm-2" for="fiveMinuteMarkBrightness">Brightness of five minute
+                            dots:</label>
+                        <div class="col-sm-10">
+                            <input type="number" class="form-control" id="fiveMinuteMarkBrightness"
+                                name="fiveMinuteMarkBrightness" placeholder="Enter a value 1-255"
+                                value="%fiveMinuteMarkBrightness%" maxlength="3">
+                        </div>
                     </div>
 
                     <div class="form-group">
-                      <label class="control-label col-sm-2" for="ledMaxBrightness">Brightness of pointer:</label>
-                      <div class="col-sm-10">
-                          <input type="number" class="form-control" id="ledMaxBrightness" name="ledMaxBrightness" placeholder="Enter a value 1-255" value="%ledMaxBrightness%" maxlength="3">
-                      </div>
+                        <label class="control-label col-sm-2" for="ledMaxBrightness">Brightness of pointer:</label>
+                        <div class="col-sm-10">
+                            <input type="number" class="form-control" id="ledMaxBrightness" name="ledMaxBrightness"
+                                placeholder="Enter a value 1-255" value="%ledMaxBrightness%" maxlength="3">
+                        </div>
                     </div>
 
                     <div class="form-group">
-                      <label class="control-label col-sm-2" for="lastofTrailBrightness">Brightness of last trailing LED:</label>
-                      <div class="col-sm-10">
-                          <input type="number" class="form-control" id="lastofTrailBrightness" name="lastofTrailBrightness" placeholder="Enter a value 1-255" value="%lastofTrailBrightness%" maxlength="3">
-                      </div>
+                        <label class="control-label col-sm-2" for="lastofTrailBrightness">Brightness of last trailing
+                            LED:</label>
+                        <div class="col-sm-10">
+                            <input type="number" class="form-control" id="lastofTrailBrightness"
+                                name="lastofTrailBrightness" placeholder="Enter a value 1-255"
+                                value="%lastofTrailBrightness%" maxlength="3">
+                        </div>
                     </div>
-
-
-                    <!-- <div class="form-group">
-                      <label class="control-label col-sm-2" for="testhour">Hour:</label>
-                      <div class="col-sm-10">
-                          <input type="text" class="form-control" id="testhour" name="testhour" placeholder="Hours:" value="%testhour%" maxlength="32">
-                      </div>
-                    </div>
-                    <div class="form-group">
-                      <label class="control-label col-sm-2" for="testminute">Minute:</label>
-                      <div class="col-sm-10">
-                          <input type="text" class="form-control" id="testminute" name="testminute" placeholder="Minutes:" value="%testminute%" maxlength="32">
-                      </div>
-                    </div>
-                    <div class="form-group">
-                      <label class="control-label col-sm-2" for="testsecond">Second:</label>
-                      <div class="col-sm-10">
-                          <input type="text" class="form-control" id="testsecond" name="testsecond" placeholder="Seconds:" value="%testsecond%" maxlength="32">
-                      </div>
-                  </div> -->
-
                 </div>
             </div>
 
@@ -127,9 +140,15 @@
         </form>
         <p></p>
         <div class="well well-sm">
-          (c)2016-%year% Viktor Takacs - <a href="http://diy.viktak.com" target="_blank">diy.viktak.com</a>
+            (c)2016-%year% Viktor Takacs - <a href="http://diy.viktak.com" target="_blank">diy.viktak.com</a>
         </div>
 
     </div>
+    <script>
+        $(document).ready(function () {
+            $('[data-toggle="tooltip"]').tooltip();
+        });
+    </script>
 </body>
+
 </html>
