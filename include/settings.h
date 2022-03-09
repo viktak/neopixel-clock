@@ -7,7 +7,23 @@
 
 namespace settings
 {
-    //  Saved values
+ 
+#define DEFAULT_ADMIN_PASSWORD "admin"
+#define DEFAULT_NODE_FRIENDLY_NAME "Neopixel Clock"
+#define DEFAULT_AP_PASSWORD "esp12345678"
+
+#ifdef __debugSettings
+#define DEFAULT_MQTT_SERVER "192.168.1.99"
+#else
+#define DEFAULT_MQTT_SERVER "test.mosquitto.org"
+#endif
+
+#define DEFAULT_MQTT_PORT 1883
+#define DEFAULT_MQTT_TOPIC "vNode"
+
+#define DEFAULT_HEARTBEAT_INTERVAL 300 //  seconds
+
+   //  Saved values
     extern char wifiSSID[22];
     extern char wifiPassword[32];
 
@@ -36,7 +52,7 @@ namespace settings
     extern unsigned char lastOfTrailBrightness;
 
     //  Calculated values
-    extern char localHost[48];
+    extern char localHost[32];
 
     enum OPERATION_MODES
     {

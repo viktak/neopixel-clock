@@ -10,8 +10,6 @@
 #include "leds.h"
 #include "ledstrip.h"
 
-#define __debugSettings
-
 void setup()
 {
     Serial.begin(common::DEBUG_SPEED);

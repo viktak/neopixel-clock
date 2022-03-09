@@ -16,8 +16,6 @@
 #define ESP_ACCESS_POINT_NAME_SIZE 63
 #define UPDATE_SIZE_UNKNOWN 0xFFFFFFFF
 
-#define __debugSettings
-
 namespace network
 {
 
@@ -205,7 +203,14 @@ namespace network
 
             if (webServer.hasArg("mqtttopic"))
             {
-                strcpy(settings::mqttTopic, webServer.arg("mqtttopic").c_str());
+                if (webServer.arg("mqtttopic") == "")
+                {
+                    sprintf(settings::mqttTopic, "%s-%s", DEFAULT_MQTT_TOPIC, common::GetDeviceMAC().substring(6).c_str());
+                }
+                else
+                {
+                    sprintf(settings::mqttTopic, "%s", webServer.arg("mqtttopic").c_str());
+                }
             }
 
             settings::SaveSettings();

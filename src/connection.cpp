@@ -9,8 +9,6 @@
 #include "leds.h"
 #include "ledstrip.h"
 
-#define __debugSettings
-
 #define MAX_WIFI_INACTIVITY 300
 #define WIFI_CONNECTION_TIMEOUT 10
 #define ACCESS_POINT_TIMEOUT 300000

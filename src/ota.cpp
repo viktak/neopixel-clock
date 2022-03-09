@@ -5,8 +5,6 @@
 #include "network.h"
 #include "leds.h"
 
-#define __debugSettings
-
 #define OTA_BLINKING_RATE 3
 
 namespace ota
