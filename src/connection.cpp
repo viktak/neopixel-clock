@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 
-#include "NTP.h"
+#include "ntp.h"
 #include "settings.h"
 #include "network.h"
 #include "mqtt.h"
@@ -164,7 +164,7 @@ namespace connection
                     if (!ntpInitialized)
                     {
                         // We are connected to the Internet for the first time so set NTP provider
-                        initNTP();
+                        ntp::setup();
 
                         ntpInitialized = true;
 
@@ -187,6 +187,7 @@ namespace connection
                 ota::loop();
                 mqtt::loop();
                 ledstrip::loop();
+                ntp::loop();
 
                 if (mqtt::needsHeartbeat)
                     mqtt::SendHeartbeat();
