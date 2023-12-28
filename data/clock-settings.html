@@ -1,0 +1,122 @@
+﻿<!DOCTYPE html>
+
+<html lang='en' xmlns='http://www.w3.org/1999/xhtml'>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Neopixel Clock</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="icon" type="image/x-icon" href="favico.ico" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        .custom-toggler .navbar-toggler-icon {
+            background-image: url(menu.png)
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <nav class="navbar navbar-expand-lg bg-light">
+            <div class="container-fluid">
+                <button class="navbar-toggler custom-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarTogglerDemo01" aria-controls="navbarTogglerDemo01" aria-expanded="false"
+                    aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarTogglerDemo01">
+                    <ul class="navbar-nav nav-pills me-auto mb-2 mb-lg-0">
+                        <li class="nav-item"><a class="nav-link" href="/">Status</a></li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/general-settings.html">General</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/clock-settings.html">Clock</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/network-settings.html">Network</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/tools.html">Tools</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/logout">Logout</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        <div class="mt-6 p-3 bg-primary text-white rounded">
+            <h1>NeoPixel Clock</h1>
+            <h2>Clock Settings</h2>
+        </div>
+        <br />
+        <form class="form-horizontal form-check" method="post">
+            <div class="mb-3 row">
+                <label for="numTrailLength" class="col-sm-3 col-form-label">Trail length:</label>
+                <div class="col-sm-10">
+                    <input type="number" class="form-control" id="numTrailLength" name="numTrailLength"
+                        value="%numTrailLength%" maxlength="1" min="1" max="9">
+                </div>
+            </div>
+
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="chkReverse" name="chkReverse" value="chkReverse"
+                    %chkReverse%>
+                <label class="form-check-label">Reverse clock</label>
+            </div>
+
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="chkfiveminute" name="chkfiveminute"
+                    value="chkfiveminute" %chkfiveminute%>
+                <label class="form-check-label">Show 5 minute dots</label>
+            </div>
+
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="chkshowseconds" name="chkshowseconds"
+                    value="chkshowseconds" %chkshowseconds%>
+                <label class="form-check-label">Show seconds</label>
+            </div>
+
+            <div class="mb-3 row">
+                <label for="numfiveMinuteMarkBrightness" class="col-sm-3 col-form-label">Brightness of five minute
+                    dots:</label>
+                <div class="col-sm-10">
+                    <input type="number" class="form-control" id="numfiveMinuteMarkBrightness"
+                        name="numfiveMinuteMarkBrightness" value="%numfiveMinuteMarkBrightness%" maxlength="3" min="1"
+                        max="255">
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <label for="numledMaxBrightness" class="col-sm-3 col-form-label">Brightness of pointer:</label>
+                <div class="col-sm-10">
+                    <input type="number" class="form-control" id="numledMaxBrightness" name="numledMaxBrightness"
+                        value="%numledMaxBrightness%" maxlength="3" min="1" max="255">
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <label for="numlastofTrailBrightness" class="col-sm-3 col-form-label">Brightness of last
+                    trailing:</label>
+                <div class="col-sm-10">
+                    <input type="number" class="form-control" id="numlastofTrailBrightness"
+                        name="numlastofTrailBrightness" value="%numlastofTrailBrightness%" maxlength="3" min="1"
+                        max="255">
+                </div>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <input type='submit' class='btn btn-success' value='Save'>
+            </div>
+
+        </form>
+        <small class='well well-sm'>
+            (c)2023 Viktor Takacs - <a href='https://diy.viktak.com' target='_blank'>diy.viktak.com</a>
+        </small>
+
+    </div>
+</body>
+
+</html>

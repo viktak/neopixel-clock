@@ -2,7 +2,6 @@
 #include <WiFiUdp.h>
 #include <TimeLib.h>
 
-#define DEBUG_NTPClient
 #include <NTPClient.h>
 
 #include "ntp.h"
@@ -10,29 +9,26 @@
 
 #define NTP_UPDATE_INTERVAL_MS 360000 //  synchronize time with NTP server once an hour
 
-namespace ntp
-{
-    WiFiUDP ntpUDP;
+WiFiUDP ntpUDP;
 
-#ifdef __debugSettings
-    char timeServer[] = "192.168.1.2";
+#if __localNTP==1
+char timeServer[] = "192.168.123.2";
 #else
-    char timeServer[] = "pool.ntp.org";
+char timeServer[] = "europe.pool.ntp.org";
 #endif
 
-    NTPClient timeClient(ntpUDP, timeServer, 0, NTP_UPDATE_INTERVAL_MS);
+NTPClient timeClient(ntpUDP, timeServer, 0, NTP_UPDATE_INTERVAL_MS);
 
-    void setup()
-    {
-        timeClient.begin();
-    }
+void setupNTP()
+{
+    timeClient.begin();
+}
 
-    void loop()
+void loopNTP()
+{
+    timeClient.update();
+    if (timeClient.isTimeSet())
     {
-        timeClient.update();
-        if (timeClient.isTimeSet())
-        {
-            setTime(timeClient.getEpochTime());
-        }
+        setTime(timeClient.getEpochTime());
     }
 }

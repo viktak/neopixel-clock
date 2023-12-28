@@ -13,7 +13,7 @@ namespace settings
 #define DEFAULT_AP_PASSWORD "esp12345678"
 
 #ifdef __debugSettings
-#define DEFAULT_MQTT_SERVER "192.168.1.99"
+#define DEFAULT_MQTT_SERVER "192.168.123.42"
 #else
 #define DEFAULT_MQTT_SERVER "test.mosquitto.org"
 #endif
