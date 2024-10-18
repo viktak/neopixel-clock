@@ -60,8 +60,6 @@ void PrintHeaders(AsyncWebServerRequest *request)
 // Root/Status
 String StatusTemplateProcessor(const String &var)
 {
-    TimeChangeRule *tcr;
-
     //  System information
     if (var == "chipid")
         return (String)ESP.getChipId();
@@ -77,8 +75,13 @@ String StatusTemplateProcessor(const String &var)
         return timechangerules::tzDescriptions[settings::timeZone];
     if (var == "currenttime")
     {
+        TimeChangeRule *tcr;
+
         time_t localTime = timechangerules::timezones[settings::timeZone]->toLocal(now(), &tcr);
-        return DateTimeToString(localTime);
+        char myDate[20];
+        DateTimeToString(myDate, localTime);
+
+        return myDate;
     }
     if (var == "uptime")
         return TimeIntervalToString(millis() / 1000);

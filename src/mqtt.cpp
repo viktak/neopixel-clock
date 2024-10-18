@@ -67,8 +67,11 @@ void SendHeartbeat()
 
     TimeChangeRule *tcr;
     time_t localTime = timechangerules::timezones[settings::timeZone]->toLocal(now(), &tcr);
+    char myDate[20];
+    DateTimeToString(myDate, localTime);
+    sysDetails["Time"] = myDate;
 
-    sysDetails["Time"] = DateTimeToString(localTime);
+
     sysDetails["Node"] = settings::localHost;
     sysDetails["Freeheap"] = ESP.getFreeHeap();
 
