@@ -12,9 +12,9 @@
 WiFiUDP ntpUDP;
 
 #if __localNTP==1
-char timeServer[] = "192.168.123.2";
+char timeServer[] = "192.168.123.6";
 #else
-char timeServer[] = "europe.pool.ntp.org";
+char timeServer[] = "pool.ntp.org";
 #endif
 
 NTPClient timeClient(ntpUDP, timeServer, 0, NTP_UPDATE_INTERVAL_MS);
